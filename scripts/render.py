@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image,ImageDraw,ImageFont
 import av
 from captions import validate
+from visuals import frosted_background, circular_presenter
 
 def run(*args):return subprocess.run(['ffmpeg','-nostdin','-v','error','-y',*map(str,args)],check=True)
 def probe(path):return json.loads(subprocess.check_output(['ffprobe','-v','error','-show_streams','-show_format','-of','json',str(path)]))
@@ -41,27 +42,67 @@ def main():
     bg=Image.new('RGB',(W,H));d=ImageDraw.Draw(bg)
     for y in range(H):
         u=y/max(H-1,1);d.line((0,y,W,y),fill=tuple((rgb(bg0)*(1-u)+rgb(bg1)*u).astype(int)))
+    if plan.get('background','frosted')=='frosted':bg=frosted_background(W,H,not dark)
     def rect(d,box,fill=card,outline=None):d.rounded_rectangle(tuple(round(v*W/512) for v in box),radius=round(20*W/512),fill=fill,outline=outline,width=2)
     def txt(d,xy,t,n=25,color=ink):
         if any(x in t for x in ('\n','\r','\\N')):raise ValueError('Graphic text must also be a short single line')
         f=font(n)
         if f.getlength(t)>W*.86:raise ValueError('Graphic too wide; simplify')
         d.text(tuple(v*W/512 for v in xy),t,font=f,fill=color,anchor='mm')
+    def normalized_box(box):
+        if len(box)!=4 or not all(isinstance(v,(int,float)) and 0<=v<=1 for v in box) or box[2]<=0 or box[3]<=0 or box[0]+box[2]>1.00001 or box[1]+box[3]>1.00001:raise ValueError('Invalid media_box x,y,width,height')
+        return tuple(round(v*(W if i%2==0 else H)) for i,v in enumerate(box))
+    source_video=next(v for v in meta['streams'] if v['codec_type']=='video')
+    sw,sh=source_video['width'],source_video['height']
+    rotation=next((float(v.get('rotation',0)) for v in source_video.get('side_data_list',[]) if 'rotation' in v),float(source_video.get('tags',{}).get('rotate',0)))
+    if round(rotation)%180:sw,sh=sh,sw
+    def source_crop_to_base(crop):
+        if crop is None:return None
+        if len(crop)!=4 or not all(0<=v<=1 for v in crop) or crop[0]>=crop[2] or crop[1]>=crop[3]:raise ValueError('Invalid source presenter crop')
+        scale=min(W/sw,H/sh);dw=round(sw*scale);dh=round(sh*scale);ox=(W-dw)//2;oy=(H-dh)//2
+        return [(ox+crop[0]*dw)/W,(oy+crop[1]*dh)/H,(ox+crop[2]*dw)/W,(oy+crop[3]*dh)/H]
+    def draw_presenter(im,original,s):
+        if not s.get('show_presenter',True):return
+        if plan.get('presenter_shape','circle')=='circle':
+            cfg=s.get('presenter',plan.get('presenter',{}));diameter=round(W*cfg.get('diameter',.36))
+            circular_presenter(im,original,(W*cfg.get('x',.56),H*cfg.get('y',.67),diameter),source_crop_to_base(cfg.get('crop')))
+        else:
+            thumb=fit(original,round(W*.40),round(H*.39));x=(W-thumb.width)//2;y=round(H*.46)
+            mask=Image.new('L',thumb.size);ImageDraw.Draw(mask).rounded_rectangle((0,0,thumb.width-1,thumb.height-1),radius=round(W*.035),fill=255);im.paste(thumb,(x,y),mask)
     media={}
     for i,s in enumerate(scenes):
         if s['mode']=='media':
+            if s.get('asset_audio','mute')!='mute':raise ValueError('Built-in renderer supports muted auxiliary audio only; use an explicit audio mix for other needs')
             path=(planpath.parent/s['asset']).resolve()
-            try:media[i]=('image',Image.open(path).convert('RGB'))
-            except Exception:
-                c=av.open(str(path));vs=c.streams.video[0];media[i]=('video',c,iter(c.decode(video=0)),None)
+            normalized_box(s.get('media_box',[.06,.14,.88,.70]))
+            try:
+                with Image.open(path) as pic:media[i]={'kind':'image','image':pic.convert('RGB')}
+            except (OSError,ValueError):
+                md=probe(path);vmeta=next(v for v in md['streams'] if v['codec_type']=='video');length=float(vmeta.get('duration',md['format']['duration']))
+                begin=float(s.get('asset_in',0));end=float(s.get('asset_out',length))
+                if not 0<=begin<end<=length+.001 or begin+s['end']-s['start']>end+.001:raise ValueError('Auxiliary video too short or invalid asset range')
+                c=av.open(str(path));it=iter(c.decode(video=0));first=next(it,None)
+                if first is None:raise ValueError('Empty auxiliary video')
+                if first.time is None:raise ValueError('Auxiliary video needs presentation timestamps')
+                media[i]={'kind':'video','container':c,'iterator':it,'current':first,'next':next(it,None),'origin':float(first.time)}
     def media_frame(i,s,t):
         entry=media[i]
-        if entry[0]=='image':return entry[1]
-        target=s.get('asset_in',0)+t-s['start'];kind,c,it,current=entry
-        while current is None or float(current.time or 0)<target:
-            try:current=next(it)
-            except StopIteration:raise ValueError('Auxiliary video too short; do not loop silently')
-        media[i]=(kind,c,it,current);return current.to_image()
+        if entry['kind']=='image':return entry['image']
+        target=float(s.get('asset_in',0))+t-s['start']
+        while entry['next'] is not None:
+            nxt=entry['next']
+            if nxt.time is None:raise ValueError('Missing auxiliary timestamp')
+            if float(nxt.time)-entry['origin']>target+1e-7:break
+            entry['current']=nxt;entry['next']=next(entry['iterator'],None)
+        return entry['current'].to_image()
+    def media_picture(si,s,t):
+        pic=media_frame(si,s,t)
+        crop=s.get('asset_crop')
+        if crop is not None:
+            if len(crop)!=4 or not all(0<=v<=1 for v in crop) or crop[0]>=crop[2] or crop[1]>=crop[3]:raise ValueError('Invalid asset crop left,top,right,bottom')
+            pic=pic.crop(tuple(round(v*(pic.width if i%2==0 else pic.height)) for i,v in enumerate(crop)))
+        x,y,w,h=normalized_box(s.get('media_box',[.06,.14,.88,.70]));pic=fit(pic,w,h);px=x+(w-pic.width)//2;py=y+(h-pic.height)//2
+        return pic,px,py
     with tempfile.TemporaryDirectory(prefix='knowledge-edit-') as td:
         base=Path(td)/'base.mkv';g=[]
         has_audio=any(s['codec_type']=='audio' for s in meta['streams'])
@@ -83,15 +124,21 @@ def main():
                 if active:
                     si,s=active;inset=s['mode']!='overlay'
                     if inset:
-                        im=bg.copy();thumb=fit(original,round(W*.40),round(H*.39));x=(W-thumb.width)//2;y=round(H*.46)
-                        mask=Image.new('L',thumb.size);ImageDraw.Draw(mask).rounded_rectangle((0,0,thumb.width-1,thumb.height-1),radius=round(W*.035),fill=255)
-                        im.paste(thumb,(x,y),mask)
+                        im=bg.copy()
+                        if s['mode']!='media':draw_presenter(im,original,s)
                     # Short graphic-only fade/slide; audio and A-roll never retimed.
                     layer=Image.new('RGBA',(W,H));dr=ImageDraw.Draw(layer)
                     if s.get('title'):rect(dr,(30,40,482,99));txt(dr,(256,70),s['title'],23)
                     items=[v for v in s.get('items',[]) if v['at']<=t]
                     if s['mode']=='media':
-                        pic=fit(media_frame(si,s,t),round(W*.88),round(H*.30));layer.paste(pic,((W-pic.width)//2,round(H*.13)))
+                        pic,px,py=media_picture(si,s,t);layer.paste(pic,(px,py))
+                        # Highlight coordinates refer to the displayed (after-crop) asset.
+                        for mark in s.get('focus',[]):
+                            if not s['start']<=mark['at']<s['end']:raise ValueError('Focus timing outside scene')
+                            if t<mark['at']:continue
+                            q=mark['box']
+                            if len(q)!=4 or not all(0<=v<=1 for v in q) or q[0]>=q[2] or q[1]>=q[3]:raise ValueError('Invalid focus box')
+                            dr.rectangle((px+q[0]*pic.width,py+q[1]*pic.height,px+q[2]*pic.width,py+q[3]*pic.height),outline=accent,width=max(2,round(W/170)))
                     elif s['mode']=='compare':
                         for col in (0,1):rect(dr,(30+col*241,128,241+col*241,342),outline=accent if col else None)
                         counts=[0,0]
@@ -114,12 +161,13 @@ def main():
                             txt(dr,(xx,y),v['text'],23,accent)
                             if s['mode']=='flow' and j and t>=v['at']+.1:
                                 rr=W/512;dr.line(tuple(int(q*rr) for q in (256,y-39,256,y-25)),fill=accent,width=3);dr.polygon([(int(q*rr),int(r*rr)) for q,r in ((251,y-30),(261,y-30),(256,y-23))],fill=accent)
-                    alpha=min(1,(t-s['start'])/.18);layer.putalpha(layer.getchannel('A').point(lambda x:int(x*alpha)));im=Image.alpha_composite(im.convert('RGBA'),layer).convert('RGB')
+                    alpha=1 if s['start']==0 else min(1,(t-s['start'])/.18);layer.putalpha(layer.getchannel('A').point(lambda x:int(x*alpha)));im=Image.alpha_composite(im.convert('RGBA'),layer).convert('RGB')
+                    if s['mode']=='media':draw_presenter(im,original,s)
                 cue=next((c for c in cues if c['start']<=t<c['end']),None)
                 if cue:
                     dr=ImageDraw.Draw(im);fnt=font(25);text=cue['text'];keys=[k for k in cue.get('highlights',[]) if k][:2]
                     rx=re.compile('('+ '|'.join(re.escape(k) for k in sorted(keys,key=len,reverse=True))+')') if keys else None
-                    spans=rx.split(text) if rx else [text];x=(W-fnt.getlength(text))/2;y=H*float(plan.get('caption_y',.71))
+                    spans=rx.split(text) if rx else [text];x=(W-fnt.getlength(text))/2;y=H*float(plan.get('caption_y',.925))
                     for span in spans:
                         if not span:continue
                         hot=span in keys;dr.text((x,y),span,font=fnt,fill=accent if hot else '#FFFFFF',anchor='lm',stroke_width=2,stroke_fill='#102024')
@@ -128,8 +176,10 @@ def main():
                 enc.stdin.write(im.tobytes())
         finally:
             enc.stdin.close();container.close()
+            for entry in media.values():
+                if entry['kind']=='video':entry['container'].close()
         if enc.wait()!=0:raise RuntimeError('Encode failed')
     run('-i',out,'-f','null','-')
-    report={'source_to_final':mapping,'duration':total,'single_line_validation':True,'listening_review':'not_performed','normal_speed_playback_review':'not_performed','full_decode':'passed'}
+    report={'source_to_final':mapping,'duration':total,'single_line_validation':True,'listening_review':'not_performed','normal_speed_playback_review':'not_performed','full_decode':'passed','auxiliary_audio':'muted','media_used':[{'scene_start':scenes[i]['start'],'scene_end':scenes[i]['end'],'asset':scenes[i]['asset'],'reason':scenes[i].get('reason',''),'asset_in':scenes[i].get('asset_in',0)} for i in media]}
     out.with_suffix('.review.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report))
 if __name__=='__main__':main()
