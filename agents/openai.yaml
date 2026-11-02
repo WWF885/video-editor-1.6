@@ -1,7 +1,7 @@
 interface:
   display_name: 文锋知识口播剪辑
-  short_description: 参照知识博主的图解与转场剪辑真人口播，单行字幕与关键词强调
-  default_prompt: 使用 $wangwenfeng-video-editor 剪辑我的视频：按内容选择图解与转场，每次只显示一行字幕，并突出关键词。
+  short_description: 智能编排图片与视频素材，毛玻璃图解、立体圆窗与单行重点字幕
+  default_prompt: 使用 $wangwenfeng-video-editor 剪辑我的视频：先理解口播和辅助素材，按内容匹配插入素材、图解与转场，每次只显示一行字幕，并突出关键词。
   icon_small: assets/icon.svg
   icon_large: assets/icon.svg
 policy:
