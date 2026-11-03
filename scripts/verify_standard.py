@@ -33,10 +33,16 @@ def samples():
         except ValueError as error:
             if expected not in str(error):raise AssertionError('Unexpected validation error: '+str(error))
         else:raise AssertionError('Required user preference was not enforced: '+expected)
+    # Regression: the circle must be filled with source pixels, including near its edges.
+    from visuals import circular_presenter
+    source=Image.new('RGB',(300,600),(201,33,61));canvas=Image.new('RGB',(220,220),(15,29,43))
+    circular_presenter(canvas,source,(18,18,184),[0,0,1,1],preserve_all=True)
+    for point in [(110,39),(110,181),(39,110),(181,110),(110,110)]:
+        if canvas.getpixel(point)!=(201,33,61):raise AssertionError('Circular portrait contains letterbox/padding instead of source pixels')
     return rows
 
 def main():
     check_environment();actual=samples();expected=json.loads((ROOT/'assets/reference-raster.json').read_text())
     if actual!=expected:raise SystemExit('Raster verification failed: check pinned environment, full package and font; do not silently render a different style')
-    print(json.dumps({'profile':'wenfeng-standard-v1','standard_version':'1.1','raster_samples':len(actual),'status':'passed'},ensure_ascii=False))
+    print(json.dumps({'profile':'wenfeng-standard-v1','standard_version':'1.2','raster_samples':len(actual),'status':'passed'},ensure_ascii=False))
 if __name__=='__main__':main()

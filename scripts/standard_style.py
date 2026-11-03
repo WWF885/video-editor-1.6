@@ -50,8 +50,8 @@ def validate_standard_plan(plan, cues, fontpath):
     """Validate the entire public fixed-style plan before opening the encoder."""
     if set(plan) - TOP_FIELDS:
         raise ValueError('Unsupported standard plan fields: ' + ', '.join(sorted(set(plan) - TOP_FIELDS)))
-    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.1':
-        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.1')
+    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.2':
+        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.2')
     for key, value in [('width', W), ('height', H), ('fps', FPS)]:
         if plan.get(key, value) != value:
             raise ValueError(f'Standard mode locks {key}={value}')
@@ -140,7 +140,7 @@ def validate_standard_plan(plan, cues, fontpath):
         if template in ('path','amplifier','compare','list','media') and scene.get('show_presenter',True):
             config=scene.get('presenter',plan.get('presenter',{}))
             if config.get('framing_confirmed') is not True or 'crop' not in config:
-                raise ValueError('Circle needs an explicitly inspected crop with full hair and both shoulders, framing_confirmed=true')
+                raise ValueError('Circle needs an explicitly inspected crop with full hair and complete face, framing_confirmed=true')
         if template == 'path':
             if len(scene.get('nodes', [])) != 2:
                 raise ValueError('Path requires exactly two timed nodes')

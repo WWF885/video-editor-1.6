@@ -41,11 +41,13 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 
 技能调用名：`wwf-video-editor`。英文技能及项目命名统一使用 `wwf` 前缀。
 
-## 1.1 默认剪辑规则
+## 1.2 默认剪辑规则
 
 - 开始前先推荐3个候选爆款标题，由用户选择或自定后才渲染。
 - 首段使用原视频全画面，顶部艺术字呈现选定标题；不以毛玻璃卡片或缩小人物窗替代首帧。
-- 圆形头像完整展示头发和肩膀，矩形原片取景等比适配，保留白边和立体阴影。取景确认需逐段查看，不是自动人脸检测。
+- 圆形头像必须等比铺满原视频，不留白。优先完整头发和整张脸（含下巴），再考虑肩部；保留白边与立体阴影，逐段检查运动。
 - 按完整语义段划分paragraphs，每段一场景，相邻模板必须不同。
 - 左上角为当前段落概述，右上角不显示序号。
-- plan需使用standard_version=1.1，并填写opening_title、paragraphs、presenter.framing_confirmed；旧计划需重新检查和编排，不能仅改版本号。
+- plan需使用standard_version=1.2，并填写opening_title、paragraphs、presenter.framing_confirmed；旧计划需重新检查和编排，不能仅改版本号。
+
+1.2 圆窗更新：取消圆内缩小矩形与底色留白，采用原片cover铺满；头发、整张脸优先于肩膀。附防留白回归检查。

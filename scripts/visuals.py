@@ -1,5 +1,5 @@
 """Reusable frosted background and source-video circular presenter."""
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
 import numpy as np
 import math
 
@@ -15,7 +15,7 @@ def frosted_background(width, height, light=False):
     return Image.alpha_composite(im,glass).convert('RGB')
 
 def circular_presenter(canvas, source, box, crop=None, preserve_all=False):
-    """Draw original ROI. preserve_all inscribes the entire proportional ROI inside the circle."""
+    """Fill a circular portrait from the original ROI. preserve_all is a legacy flag; no padding is added."""
     x,y,size=map(round,box)
     if size<8 or x<0 or y<0 or x+size>canvas.width or y+size>canvas.height:raise ValueError('Circle outside canvas')
     if crop is None:
@@ -30,15 +30,9 @@ def circular_presenter(canvas, source, box, crop=None, preserve_all=False):
         if not preserve_all and abs((bounds[2]-bounds[0])-(bounds[3]-bounds[1]))>2:raise ValueError('Legacy crop must be square; preserve proportions')
     s=size/184;rim=max(2,round(3*s));inner=size-2*rim
     roi=source.crop(bounds)
-    if preserve_all:
-        # A rectangle whose diagonal is at most 90% of the inner diameter is
-        # wholly inside the circle, so the mask cannot clip selected hair/shoulders.
-        scale=inner*.90/math.hypot(roi.width,roi.height)
-        pw=max(1,math.floor(roi.width*scale));ph=max(1,math.floor(roi.height*scale))
-        pic=Image.new('RGBA',(inner,inner),(17,39,57,255))
-        roi=roi.resize((pw,ph),Image.Resampling.LANCZOS).convert('RGBA')
-        pic.paste(roi,((inner-pw)//2,(inner-ph)//2))
-    else:pic=roi.resize((inner,inner),Image.Resampling.LANCZOS).convert('RGBA')
+    # Fill the circular window with actual source pixels; never letterbox a portrait.
+    # The selected ROI must be visually checked to retain all hair and the full face.
+    pic=ImageOps.fit(roi,(inner,inner),method=Image.Resampling.LANCZOS,centering=(.5,.5)).convert('RGBA')
     shadow=Image.new('RGBA',canvas.size);d=ImageDraw.Draw(shadow);offset=round(6*s)
     d.ellipse((x,y+offset,x+size,y+size+offset),fill=(3,13,26,105));shadow=shadow.filter(ImageFilter.GaussianBlur(7*s))
     result=Image.alpha_composite(canvas.convert('RGBA'),shadow)
