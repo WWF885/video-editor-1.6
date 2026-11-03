@@ -46,12 +46,36 @@ def _crop(value, label):
         raise ValueError(f'{label} must be a positive normalized crop')
 
 
+def opening_title_lines(opening, font):
+    value=opening['text']; highlights=opening.get('highlights',[])
+    if not isinstance(highlights,list) or not 1 <= len(highlights) <= 3 or any(not isinstance(k,str) or not k or k not in value for k in highlights):
+        raise ValueError('Opening title requires one to three keywords occurring in its text')
+    lines=opening.get('lines')
+    if lines is None:
+        if font.getlength(value)<=440:lines=[value]
+        else:
+            choices=[]
+            for i in range(1,len(value)):
+                if any(a<i<a+len(k) for k in highlights for a in [value.find(k)]):continue
+                left,right=value[:i],value[i:]
+                if max(font.getlength(left),font.getlength(right))<=440:
+                    score=abs(font.getlength(left)-font.getlength(right))-(300 if left[-1] in '，：！？、' else 0)
+                    choices.append((score,[left,right]))
+            if not choices:raise ValueError('Shorten opening title to fit two large lines')
+            lines=min(choices,key=lambda v:v[0])[1]
+    if not isinstance(lines,list) or not 1<=len(lines)<=2 or any(not isinstance(v,str) or not v or '\n' in v or font.getlength(v)>440 for v in lines) or ''.join(lines)!=value:
+        raise ValueError('Opening lines must reproduce the title in one or two large lines within 440px')
+    if any(not any(k in line for line in lines) for k in highlights):
+        raise ValueError('Do not split a title keyword across lines')
+    return lines
+
+
 def validate_standard_plan(plan, cues, fontpath):
     """Validate the entire public fixed-style plan before opening the encoder."""
     if set(plan) - TOP_FIELDS:
         raise ValueError('Unsupported standard plan fields: ' + ', '.join(sorted(set(plan) - TOP_FIELDS)))
-    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.2':
-        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.2')
+    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.3':
+        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.3')
     for key, value in [('width', W), ('height', H), ('fps', FPS)]:
         if plan.get(key, value) != value:
             raise ValueError(f'Standard mode locks {key}={value}')
@@ -81,20 +105,12 @@ def validate_standard_plan(plan, cues, fontpath):
             raise ValueError('framing_confirmed must be boolean after visual inspection')
     presenter(plan.get('presenter', {}))
     opening=plan.get('opening_title')
-    if not isinstance(opening,dict) or set(opening)-{'text','approved','source','candidates'} or opening.get('approved') is not True or opening.get('source') not in ('user','chosen'):
+    if not isinstance(opening,dict) or set(opening)-{'text','approved','source','candidates','lines','highlights'} or opening.get('approved') is not True or opening.get('source') not in ('user','chosen'):
         raise ValueError('Confirm opening_title text before rendering: approved=true, source=user or chosen')
     title_value=opening.get('text')
     if not isinstance(title_value,str) or not title_value.strip() or '\n' in title_value or '\r' in title_value:
         raise ValueError('opening_title.text must be a nonempty title')
-    def art_lines(value):
-        lines=[];line=''
-        for ch in value:
-            if font(38).getlength(line+ch)>440 and line:lines.append(line);line=''
-            line+=ch
-        if line:lines.append(line)
-        if len(lines)>2:raise ValueError('Opening art title needs at most two lines at fixed font size; shorten title')
-        return lines
-    art_lines(title_value)
+    opening_title_lines(opening, font(52))
     if opening.get('source')=='chosen':
         candidates=opening.get('candidates')
         if not isinstance(candidates,list) or len(candidates)!=3 or any(not isinstance(v,str) or not v.strip() for v in candidates) or title_value not in candidates:
@@ -129,7 +145,7 @@ def validate_standard_plan(plan, cues, fontpath):
         previous = end
         if index==0:
             if scene.get('title')!=title_value:raise ValueError('First scene title must match the approved opening title')
-            art_lines(scene['title'])
+            opening_title_lines(opening, font(52))
         else:text(scene.get('title', ''),38,440,'title')
         text(scene.get('subtitle', ''), 19, 440, 'subtitle')
         presenter(scene.get('presenter', {}))
@@ -269,27 +285,24 @@ class StandardStyle:
         return Image.alpha_composite(im,layer)
 
     def art_title(self, im, value):
-        lines=[];line=''
-        for ch in value:
-            if self.font(38).getlength(line+ch)>440 and line:lines.append(line);line=''
-            line+=ch
-        if line:lines.append(line)
-        mask=Image.new('L',(W,H));md=ImageDraw.Draw(mask)
+        opening=self.plan['opening_title'];font=self.font(52)
+        lines=opening_title_lines(opening,font)
         shadow=Image.new('RGBA',(W,H));sd=ImageDraw.Draw(shadow)
-        outline=Image.new('RGBA',(W,H));od=ImageDraw.Draw(outline)
+        foreground=Image.new('RGBA',(W,H));d=ImageDraw.Draw(foreground)
+        keywords=sorted(opening['highlights'],key=len,reverse=True)
         for j,line in enumerate(lines):
-            yy=104+j*53
-            sd.text((259,yy+4),line,font=self.font(38),fill=(0,0,0,220),anchor='mm',stroke_width=3)
-            od.text((256,yy),line,font=self.font(38),fill=(0,0,0,0),anchor='mm',stroke_width=3,stroke_fill=(6,20,33,255))
-            md.text((256,yy),line,font=self.font(38),fill=255,anchor='mm')
-            md.text((256.6,yy),line,font=self.font(38),fill=255,anchor='mm')
+            yy=(77+j*57) if len(lines)==2 else 104
+            x=256-font.getlength(line)/2
+            sd.text((x+3,yy+5),line,font=font,anchor='lm',fill=(0,0,0,220),stroke_width=4)
+            spans=re.split('('+'|'.join(re.escape(k) for k in keywords)+')',line)
+            for span in spans:
+                if not span:continue
+                color='#FFE36D' if span in keywords else '#F7FFFD'
+                d.text((x,yy),span,font=font,anchor='lm',fill=color,stroke_width=4,stroke_fill='#061421')
+                d.text((x+.7,yy),span,font=font,anchor='lm',fill=color)
+                x+=font.getlength(span)
         im.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(3)))
-        im.alpha_composite(outline)
-        gradient=Image.new('RGBA',(W,H));gd=ImageDraw.Draw(gradient)
-        for yy in range(H):
-            q=max(0,min(1,(yy-77)/100));color=tuple(round(a*(1-q)+b*q) for a,b in zip((247,255,253),(88,229,208)))
-            gd.line((0,yy,W,yy),fill=(*color,255))
-        gradient.putalpha(mask);im.alpha_composite(gradient)
+        im.alpha_composite(foreground)
 
     def render(self, original_frame, t, scene_index, scene, *, media_image=None):
         if original_frame.size != (W,H):
@@ -305,8 +318,8 @@ class StandardStyle:
             veil=Image.new('RGBA',(W,H));vd=ImageDraw.Draw(veil)
             for yy in range(224):vd.line((0,yy,W,yy),fill=(6,17,29,round(185*(1-yy/224))))
             im=Image.alpha_composite(im,veil);d=ImageDraw.Draw(im)
-            sw=self.font(18).getlength(summary);d.rounded_rectangle((24,20,42+sw,57),radius=12,fill=(10,27,42,180))
-            self.text(d,(33,38),summary,18,WHITE,'lm')
+            sw=self.font(15).getlength(summary);d.rounded_rectangle((24,8,42+sw,38),radius=12,fill=(10,27,42,180))
+            self.text(d,(33,23),summary,15,WHITE,'lm')
             self.art_title(im,title)
         else:
             d.line((32,103,480,103),fill='#CED9E5' if light else '#294052',width=1)
