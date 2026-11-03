@@ -1,9 +1,9 @@
 ---
 name: wangwenfeng-video-editor
-description: 将真人知识口播视频剪辑成“AI旅者王文锋”风格成片。参照林文冠AI的章节条、逐步知识标签、明暗信息卡、人物小窗、步骤清单、对比和关系图；自动单行字幕、关键词强调。用户上传口播或同时提供图片、视频、截图、录屏，要求自动剪辑、语义匹配素材、动态知识图解或单行重点字幕时使用。
+description: 使用固定模板、内置字体和画面校验，将真人知识口播视频剪辑成“AI旅者王文锋”风格成片。参照林文冠AI的章节条、逐步知识标签、明暗信息卡、人物小窗、步骤清单、对比和关系图；自动单行字幕、关键词强调。用户上传口播或同时提供图片、视频、截图、录屏，要求自动剪辑、语义匹配素材、动态知识图解或单行重点字幕时使用。
 ---
 
-# 文锋知识口播剪辑
+# 文锋同款口播剪辑·标准版
 
 ## 不可退让的规则
 
@@ -14,9 +14,17 @@ description: 将真人知识口播视频剪辑成“AI旅者王文锋”风格�
 - 字幕必须来自实际语音和可靠时间戳。无法转写时保留可完成工作并说明缺口，不编字幕、不声称已听审。
 - 所有样式按内容选择，不在每条视频中机械塞满。不要把参考作者的姓名、资历、Logo或文案直接当作用户素材。
 
+## 标准模式：默认且必须执行
+
+- 要求“同款、与王文锋一致、下载后一样”时，默认使用`wenfeng-standard-v1`，先阅读[标准运行与计划](references/standard-mode.md)。不得临时重写渲染程序、替换字体、自由调整色值/布局/转场，或仅输出风格描述。
+- 只修改内容和分镜：标题、字幕、强调词、素材、真实入出点、模板选择、人物取景。输出512×902、30fps；其余视觉参数由固定模板决定。用户明确要求改设计时另存自由模式，不冒充通过标准一致性检查。
+- 统一从`scripts/run.py`执行：它核对Python/依赖版本、内置字体和模板文件校验值，失败时停止并给出修复方法，禁止绕过检查换成另一套实现。
+- 先运行标准演示和自检。相同素材、计划和合格运行环境应得到相同原始画面哈希；跨平台编码字节、不同FFmpeg版本的解码/音频可能不同。不同素材保持同款视觉体系，不承诺自动生成相同分镜。
+- 每次成片保存review中的模板版本、环境、输入与画面哈希；没有实际运行不得声称效果已复现。
+
 ## 输入与默认选择
 
-接收口播主视频；可选逐字稿、已校正字幕、多张图片、多段辅助视频/录屏、品牌字体和颜色。用户只发素材时，先识别哪个是主口播；已有上下文明确则直接沿用。沿用用户本次已选风格。首次无指定时采用浅色知识卡：浅蓝至暖白背景、白卡、蓝色强调；用户选深色时采用深青黑、白字、青绿强调。不要为了颜色再询问。
+接收口播主视频；可选逐字稿、已校正字幕、多张图片、多段辅助视频/录屏、品牌字体和颜色。用户只发素材时，先识别哪个是主口播；已有上下文明确则直接沿用。沿用用户本次明确选择；默认标准模板按场景固定使用深蓝/米白毛玻璃与青绿/蓝色强调，不再让不同调用工具自行设计。
 
 默认使用已确认的毛玻璃底色、白边立体圆形人物窗与开场顶部标题；执行前阅读[成片视觉规范](references/premium-style.md)。明确指定其他风格时服从本次要求。
 
@@ -30,7 +38,7 @@ description: 将真人知识口播视频剪辑成“AI旅者王文锋”风格�
 4. 建立明确剪辑计划，记录源片in/out和成片start/end。先确定内容删减，再计算字幕与动效时间；不根据目标时长变速。
 5. 读取[样式与转场库](references/style-catalog.md)，按句子功能选样式。先写一个图解要表达的意思，再安排“出现—停留—替换/退出”。图解中的新信息只在对应讲话时出现。
 6. 将转写统一成JSON，使用`scripts/captions.py`生成单行cue、ASS和SRT。提供本条视频关键词。没有可靠词时间戳且整句过长时必须补对齐，不能伪造分句时刻。
-7. 按[计划格式](references/plan-format.md)写plan.json；使用`scripts/render.py`渲染。依赖为Python、Pillow、NumPy、PyAV、FFmpeg/ffprobe；自备可商用中文字体并保存字体许可。不要把联网下载或某个商业服务当作唯一可行路径。
+7. 按[计划格式](references/plan-format.md)写plan.json；使用`scripts/run.py`标准入口渲染。字体及OFL许可已随包提供；Python与依赖版本参见requirements.txt和标准运行说明；系统需FFmpeg/ffprobe。不要把联网下载或某个商业服务当作唯一可行路径。
 8. 渲染一个覆盖最长字幕、图解和回切的短段；检查文字实际像素宽度、单行、重点颜色、脸部遮挡、手机可读性和时间映射；有辅助素材时检查关键内容未被圆窗/字幕遮挡、录屏文字可读、动作展示完整、素材声未抢对白。更改cuts后重建字幕。修好后输出完整视频。
 9. 全文件解码检查；检查开头、结尾、所有转场及最长字幕。能播放听审则正常速度听审；不能听审时明确记录`listening_review: not_performed`，不得说已完整视听复核。对白优先，配乐与音效可省略，不能每个标签都加音效。
 10. 交付MP4、SRT与可复用工程（计划、cue、脚本、字体许可、素材清单、源文件或可持续取回信息）。按当前文件保存规范持久化。不要发布到外部平台，除非用户另有明确指令。
@@ -38,8 +46,10 @@ description: 将真人知识口播视频剪辑成“AI旅者王文锋”风格�
 ## 内置脚本示例
 
 ```bash
-python scripts/captions.py --transcript transcript.json --font /path/chinese.otf --width 512 --height 902 --keywords 'IP,个人价值,低成本,专业,信用' --out work/captions
-python scripts/render.py --source input.mp4 --plan plan.json --captions work/captions.json --font /path/chinese.otf --output work/final.mp4
+python scripts/captions.py --transcript transcript.json --font assets/fonts/NotoSansCJKsc-Regular.otf --width 512 --height 902 --keywords 'IP,个人价值,低成本,专业,信用' --out work/captions
+python scripts/run.py --check
+python scripts/run.py --demo --demo-dir work/demo
+python scripts/run.py --source input.mp4 --plan plan.json --captions work/captions.json --output work/final.mp4
 ```
 
 单行字幕脚本失败时修复时间戳、分词或布局，不能移除校验绕过它。SRT是纯字幕，ASS包含颜色强调，JSON是渲染器的权威cue。播放已烧录字幕的成片时，不要再加载SRT产生重复字幕。

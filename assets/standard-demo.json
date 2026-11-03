@@ -1,0 +1,162 @@
+{
+  "style_profile": "wenfeng-standard-v1",
+  "standard_version": "1.0",
+  "width": 512,
+  "height": 902,
+  "fps": 30,
+  "presenter": {
+    "crop": [
+      0,
+      0.07760532150776053,
+      1,
+      0.6452328159645233
+    ]
+  },
+  "scenes": [
+    {
+      "start": 0,
+      "end": 2,
+      "template": "presenter",
+      "title": "标准模板效果演示",
+      "subtitle": "合成校准素材 · 无真人与口播"
+    },
+    {
+      "start": 2,
+      "end": 4,
+      "template": "path",
+      "title": "让内容更容易理解",
+      "nodes": [
+        {
+          "at": 2,
+          "text": "清楚表达"
+        },
+        {
+          "at": 2.5,
+          "text": "有效连接"
+        }
+      ],
+      "takeaway": "一个画面，一个重点"
+    },
+    {
+      "start": 4,
+      "end": 6,
+      "template": "statement",
+      "title": "明确表达的方向",
+      "before": "堆砌信息",
+      "after": "讲清价值"
+    },
+    {
+      "start": 6,
+      "end": 8,
+      "template": "amplifier",
+      "title": "统一的价值图解",
+      "traits": [
+        {
+          "at": 6,
+          "text": "专业"
+        },
+        {
+          "at": 6.4,
+          "text": "能力"
+        },
+        {
+          "at": 6.8,
+          "text": "信用"
+        }
+      ],
+      "center": "个人IP"
+    },
+    {
+      "start": 8,
+      "end": 10,
+      "template": "list",
+      "title": "逐步呈现重点",
+      "items": [
+        {
+          "at": 8,
+          "text": "先理解内容"
+        },
+        {
+          "at": 8.5,
+          "text": "再选择素材"
+        },
+        {
+          "at": 9,
+          "text": "最后统一呈现"
+        }
+      ]
+    },
+    {
+      "start": 10,
+      "end": 12,
+      "template": "compare",
+      "title": "选择合适的表达",
+      "columns": [
+        {
+          "title": "信息堆砌",
+          "items": [
+            {
+              "at": 10,
+              "text": "杂乱"
+            },
+            {
+              "at": 10.4,
+              "text": "分散"
+            },
+            {
+              "at": 10.8,
+              "text": "难理解"
+            }
+          ]
+        },
+        {
+          "title": "清楚表达",
+          "items": [
+            {
+              "at": 10,
+              "text": "聚焦"
+            },
+            {
+              "at": 10.4,
+              "text": "连贯"
+            },
+            {
+              "at": 10.8,
+              "text": "易理解"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "start": 12,
+      "end": 14,
+      "template": "media",
+      "title": "图片与重点区域",
+      "asset": "demo-insert.png",
+      "show_presenter": false,
+      "focus": [
+        {
+          "at": 12.5,
+          "box": [
+            0.12,
+            0.35,
+            0.88,
+            0.65
+          ]
+        }
+      ]
+    },
+    {
+      "start": 14,
+      "end": 16,
+      "template": "media",
+      "title": "原速动态素材",
+      "asset": "demo-source.mp4",
+      "asset_in": 2,
+      "asset_out": 4,
+      "show_presenter": true,
+      "asset_audio": "mute"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 """Render speech-timed knowledge graphics and ONE measured subtitle line."""
-import argparse,json,subprocess,tempfile,re
+import argparse,json,subprocess,tempfile,re,hashlib,wave,math
 from functools import lru_cache
 from pathlib import Path
 import numpy as np
@@ -21,7 +21,14 @@ def main():
     if W%2 or H%2 or min(W,H,fps)<=0:raise ValueError('Use positive even picture dimensions')
     @lru_cache(maxsize=32)
     def font(n):return ImageFont.truetype(a.font,round(n*W/512))
-    cues=json.load(open(a.captions));validate(cues,font(25),W*.74)
+    cues=json.load(open(a.captions));profile=plan.get('style_profile')
+    if profile not in (None,'legacy','wenfeng-standard-v1'):raise ValueError('Unknown style_profile')
+    standard=profile=='wenfeng-standard-v1'
+    style=None
+    if standard:
+        from standard_style import StandardStyle, validate_standard_plan
+        validate_standard_plan(plan,cues,a.font);style=StandardStyle(plan,cues,a.font)
+    else:validate(cues,font(25),W*.74)
     cuts=plan.get('cuts',[{'in':0,'out':duration}]);total=0;mapping=[]
     for c in cuts:
         if not 0<=c['in']<c['out']<=duration+.01:raise ValueError('Invalid source cut')
@@ -29,11 +36,12 @@ def main():
     scenes=plan.get('scenes',[]);prev=0
     for s in scenes:
         if not 0<=s['start']<s['end']<=total+.01 or s['start']<prev:raise ValueError('Scene overlap/range')
-        if s['mode'] not in ('overlay','card','steps','flow','compare','media'):raise ValueError('Unknown mode')
+        if not standard and s['mode'] not in ('overlay','card','steps','flow','compare','media'):raise ValueError('Unknown mode')
         if len(s.get('items',[]))>8:raise ValueError('Split dense scenes')
         prev=s['end']
         for v in s.get('items',[]):
             if not s['start']<=v['at']<s['end']:raise ValueError('Item outside scene')
+    if standard and abs(scenes[-1]['end']-total)>.02:raise ValueError('Standard scenes must cover complete edited duration')
     if cues and cues[-1]['end']>total+.05:raise ValueError('Caption beyond edit')
     dark=plan.get('theme','light')=='dark'
     if plan.get('theme','light') not in ('light','dark'):raise ValueError('Invalid theme')
@@ -71,7 +79,7 @@ def main():
             mask=Image.new('L',thumb.size);ImageDraw.Draw(mask).rounded_rectangle((0,0,thumb.width-1,thumb.height-1),radius=round(W*.035),fill=255);im.paste(thumb,(x,y),mask)
     media={}
     for i,s in enumerate(scenes):
-        if s['mode']=='media':
+        if s.get('mode',s.get('template'))=='media':
             if s.get('asset_audio','mute')!='mute':raise ValueError('Built-in renderer supports muted auxiliary audio only; use an explicit audio mix for other needs')
             path=(planpath.parent/s['asset']).resolve()
             normalized_box(s.get('media_box',[.06,.14,.88,.70]))
@@ -113,13 +121,31 @@ def main():
         args=['-i',src,'-filter_complex',';'.join(g),'-map','[v]']
         if has_audio:args+=['-map','[a]','-c:a','pcm_s16le']
         run(*args,'-c:v','libx264','-preset','fast','-crf','18',base)
-        cmd=['ffmpeg','-nostdin','-v','error','-y','-f','rawvideo','-pix_fmt','rgb24','-s',f'{W}x{H}','-r',str(fps),'-i','-','-i',str(base),'-map','0:v:0']
-        if has_audio:cmd+=['-map','1:a:0','-c:a','aac','-b:a','160k']
-        cmd+=['-c:v','libx264','-preset','fast','-crf','19','-pix_fmt','yuv420p','-movflags','+faststart',str(out)]
-        enc=subprocess.Popen(cmd,stdin=subprocess.PIPE);container=av.open(str(base))
+        cmd=['ffmpeg','-nostdin','-v','error','-y','-f','rawvideo','-pix_fmt','rgb24','-s',f'{W}x{H}','-r',str(fps),'-i','-','-i',str(base)]
+        if has_audio and standard:
+            sr=48000;sound=np.zeros((math.ceil(total*sr)+sr//2,2),np.float32)
+            for j,sc in enumerate(scenes[1:]):
+                k=round(sc['start']*sr);u=np.arange(round(.11*sr))/sr
+                tone=(np.sin(2*np.pi*(650-220*u)*u)*.7+np.random.default_rng(j).normal(0,.1,len(u)))*.012*np.exp(-u*42)*np.minimum(1,u/.006)
+                sound[k:k+len(u)]+=tone[:,None]
+            sfx=Path(td)/'accents.wav'
+            with wave.open(str(sfx),'w') as f:f.setnchannels(2);f.setsampwidth(2);f.setframerate(sr);f.writeframes((np.clip(sound,-1,1)*32767).astype('<i2').tobytes())
+            measured=subprocess.run(['ffmpeg','-nostdin','-v','info','-i',str(base),'-vn','-af','volumedetect','-f','null','-'],capture_output=True,text=True,check=True).stderr
+            maximum=re.search(r'max_volume: ([^ ]+) dB',measured)
+            normalize=bool(maximum and maximum.group(1)!='-inf' and float(maximum.group(1))>-70)
+            audio_filter='[1:a][2:a]amix=inputs=2:duration=first:normalize=0'+(',loudnorm=I=-16:TP=-1.5:LRA=11' if normalize else '')+'[a]'
+            cmd+=['-i',str(sfx),'-filter_complex',audio_filter,'-map','[a]','-c:a','aac','-b:a','160k','-ar','48000']
+        elif has_audio:cmd+=['-map','1:a:0','-c:a','aac','-b:a','160k']
+        cmd+=['-map','0:v:0','-c:v','libx264','-preset','fast','-crf','18' if standard else '19','-pix_fmt','yuv420p','-movflags','+faststart',str(out)]
+        enc=subprocess.Popen(cmd,stdin=subprocess.PIPE);container=av.open(str(base));raster_hash=hashlib.sha256();frame_count=0
         try:
             for idx,f in enumerate(container.decode(video=0)):
                 t=idx/fps;original=f.to_image();active=next(((i,s) for i,s in enumerate(scenes) if s['start']<=t<s['end']),None)
+                if standard:
+                    if active is None:raise ValueError('Standard timeline requires a scene at every frame')
+                    si,sc=active;sc=dict(sc);cfg=sc.get('presenter',plan.get('presenter',{}));sc['_presenter_crop_base']=source_crop_to_base(cfg.get('crop'))
+                    pic=media_frame(si,sc,t) if sc.get('template')=='media' else None
+                    im=style.render(original,t,si,sc,media_image=pic);raw=im.tobytes();raster_hash.update(raw);frame_count+=1;enc.stdin.write(raw);continue
                 im=original.copy()
                 if active:
                     si,s=active;inset=s['mode']!='overlay'
@@ -130,7 +156,7 @@ def main():
                     layer=Image.new('RGBA',(W,H));dr=ImageDraw.Draw(layer)
                     if s.get('title'):rect(dr,(30,40,482,99));txt(dr,(256,70),s['title'],23)
                     items=[v for v in s.get('items',[]) if v['at']<=t]
-                    if s['mode']=='media':
+                    if s.get('mode',s.get('template'))=='media':
                         pic,px,py=media_picture(si,s,t);layer.paste(pic,(px,py))
                         # Highlight coordinates refer to the displayed (after-crop) asset.
                         for mark in s.get('focus',[]):
@@ -162,7 +188,7 @@ def main():
                             if s['mode']=='flow' and j and t>=v['at']+.1:
                                 rr=W/512;dr.line(tuple(int(q*rr) for q in (256,y-39,256,y-25)),fill=accent,width=3);dr.polygon([(int(q*rr),int(r*rr)) for q,r in ((251,y-30),(261,y-30),(256,y-23))],fill=accent)
                     alpha=1 if s['start']==0 else min(1,(t-s['start'])/.18);layer.putalpha(layer.getchannel('A').point(lambda x:int(x*alpha)));im=Image.alpha_composite(im.convert('RGBA'),layer).convert('RGB')
-                    if s['mode']=='media':draw_presenter(im,original,s)
+                    if s.get('mode',s.get('template'))=='media':draw_presenter(im,original,s)
                 cue=next((c for c in cues if c['start']<=t<c['end']),None)
                 if cue:
                     dr=ImageDraw.Draw(im);fnt=font(25);text=cue['text'];keys=[k for k in cue.get('highlights',[]) if k][:2]
@@ -173,13 +199,13 @@ def main():
                         hot=span in keys;dr.text((x,y),span,font=fnt,fill=accent if hot else '#FFFFFF',anchor='lm',stroke_width=2,stroke_fill='#102024')
                         if hot:dr.text((x+.5,y),span,font=fnt,fill=accent,anchor='lm',stroke_width=0)
                         x+=fnt.getlength(span)
-                enc.stdin.write(im.tobytes())
+                raw=im.tobytes();raster_hash.update(raw);frame_count+=1;enc.stdin.write(raw)
         finally:
             enc.stdin.close();container.close()
             for entry in media.values():
                 if entry['kind']=='video':entry['container'].close()
         if enc.wait()!=0:raise RuntimeError('Encode failed')
     run('-i',out,'-f','null','-')
-    report={'source_to_final':mapping,'duration':total,'single_line_validation':True,'listening_review':'not_performed','normal_speed_playback_review':'not_performed','full_decode':'passed','auxiliary_audio':'muted','media_used':[{'scene_start':scenes[i]['start'],'scene_end':scenes[i]['end'],'asset':scenes[i]['asset'],'reason':scenes[i].get('reason',''),'asset_in':scenes[i].get('asset_in',0)} for i in media]}
+    report={'source_to_final':mapping,'duration':total,'input_hashes':{name:hashlib.sha256(Path(path).read_bytes()).hexdigest() for name,path in [('source',src),('plan',a.plan),('captions',a.captions)]},'style_profile':profile or 'legacy','renderer_version':'1.0','raster_sha256':raster_hash.hexdigest(),'frame_count':frame_count,'font_sha256':hashlib.sha256(Path(a.font).read_bytes()).hexdigest(),'single_line_validation':True,'listening_review':'not_performed','normal_speed_playback_review':'not_performed','full_decode':'passed','auxiliary_audio':'muted','media_used':[{'scene_start':scenes[i]['start'],'scene_end':scenes[i]['end'],'asset':scenes[i]['asset'],'reason':scenes[i].get('reason',''),'asset_in':scenes[i].get('asset_in',0)} for i in media]}
     out.with_suffix('.review.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report))
 if __name__=='__main__':main()

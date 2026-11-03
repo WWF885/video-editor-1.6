@@ -1,7 +1,7 @@
 interface:
-  display_name: 文锋知识口播剪辑
-  short_description: 智能编排图片与视频素材，毛玻璃图解、立体圆窗与单行重点字幕
-  default_prompt: 使用 $wangwenfeng-video-editor 剪辑我的视频：先理解口播和辅助素材，按内容匹配插入素材、图解与转场，每次只显示一行字幕，并突出关键词。
+  display_name: 文锋同款口播剪辑·标准版
+  short_description: 固定模板复现同款效果，内置字体与校验，智能编排素材和单行重点字幕
+  default_prompt: 使用 $wangwenfeng-video-editor 剪辑我的视频：默认使用wenfeng-standard-v1和scripts/run.py，先理解口播和辅助素材，再选择固定模板并填写实际时间，不自行改写样式，每次只显示一行字幕，并突出关键词。
   icon_small: assets/icon.svg
   icon_large: assets/icon.svg
 policy:

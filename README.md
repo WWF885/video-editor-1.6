@@ -1,40 +1,40 @@
-# 文锋知识口播剪辑 Skill
+# 文锋同款口播剪辑·标准版
 
-将真人口播剪辑成带知识图解的视频。每次只显示一行对白字幕，并突出关键词。
+固定模板、内置字体与画面校验，让不同用户使用同一套画面生成程序。默认 `wenfeng-standard-v1`；AI只填写内容、选择模板和匹配素材，不临时改写样式。
 
-## 功能
+## 固定效果
 
-- 章节条、逐层关键词、浅色信息卡和深色知识板。
-- 毛玻璃底色、白色立体圆形真人窗、开场顶部标题、步骤清单、前后对比、关系箭头和真实录屏。
-- 基于真实语音时间戳生成单行字幕，长句拆分并校验宽度、重叠和有效时长。
-- 保留原声与自然语速；输出MP4、SRT、ASS和可复用计划。
+毛玻璃底色、白色立体圆形真人窗、第一帧顶部标题、单行重点字幕、渐进图解、0.24秒固定转场。7种模板覆盖真人、路径、观点对照、价值放大、双栏比较、步骤和图片/视频素材。
 
-## 辅助素材编排
+## 下载与运行
 
-可同时提供图片、截图、录屏和辅助视频。调用技能的AI先查看素材并匹配实际讲话，再决定插入时间、展示尺寸、重点框选和人物窗是否显示。无关或重复素材不强行使用，视频默认静音，口播原声持续。
-
-脚本支持图片/视频、明确素材入出点、等比展示、指定裁切、重点框、人物窗换角或隐藏。素材语义分析与语音转写由调用环境完成；脚本不内置自动语义分析。复杂遮罩转场、辅助原声混音需另写合成步骤。
-
-## 使用
-
-下载仓库，将完整文件夹放入支持SKILL.md的AI工具的技能目录，保留scripts、references、agents的目录结构。
-
-示例：
-
-> 使用文锋知识口播剪辑处理这个视频：单行字幕，突出关键词，采用毛玻璃背景和白色立体圆形真人窗，根据内容编排辅助图片与视频。
-
-运行脚本需要Python、FFmpeg/ffprobe，以及Pillow、NumPy、PyAV。中文字体需自行提供。语音转写需由使用环境中的转写工具完成，本项目不内置语音识别模型。
+点击 **Code → Download ZIP** 并完整解压；不能只复制SKILL.md。运行环境为Python3.12.14、FFmpeg与ffprobe。依赖及字体版本已固定：
 
 ```bash
-pip install pillow numpy av
-python scripts/captions.py --transcript transcript.json --font /path/chinese.otf --keywords 'IP,个人价值,专业' --out work/captions
-python scripts/render.py --source input.mp4 --plan plan.json --captions work/captions.json --font /path/chinese.otf --output work/final.mp4
+python -m pip install -r requirements.txt
+python scripts/run.py --check
+python scripts/run.py --demo --demo-dir work/demo
+python scripts/verify_standard.py
 ```
 
-计划格式见references/plan-format.md；完整工作流程见SKILL.md。
+标准演示无需真人素材或API密钥，使用明确标注的非真人、无口播校准画面；演示字幕仅为排版测试。所有40个画面采样点必须通过，环境不合格会停止，不偷偷换字体或模板。Dockerfile提供隔离构建方式，但没有发布不可变镜像；严格跨机器复现需使用同一构建镜像摘要及CPU架构。
 
-## 范围与检查
+## 剪辑自己的素材
 
-样式来自对公开视频的画面分析；未打包参考作者视频、Logo或用户原始素材。不是任何博主的官方工具，也不保证逐帧复现原片效果。
+把主口播、可选图片/录屏/辅助视频和逐字稿交给支持Skill的AI：
 
-字幕经过自动转写后仍需核对姓名、数字、否定词和专业术语。脚本自带单行和时间校验，但技术校验不能替代视听审看。
+> 使用文锋知识口播剪辑，默认标准模式。先理解口播和素材，按实际语音建立plan.json与captions.json，选择固定模板，用scripts/run.py渲染，不重写样式。
+
+```bash
+python scripts/run.py --source input.mp4 --plan plan.json --captions captions.json --output work/final.mp4
+```
+
+输出MP4、SRT、画面与输入校验报告和环境报告。标准计划格式见 [references/standard-mode.md](references/standard-mode.md)，完整示例见 [assets/standard-demo.json](assets/standard-demo.json)。素材编排见 [references/material-direction.md](references/material-direction.md)。语音转写与语义分析由调用环境完成，不内置ASR或自动语义分析模型。辅助视频默认静音，原口播持续、原速；视频不足不循环。中文字体附OFL许可。
+
+## 一致性的范围
+
+相同素材、相同剪辑计划、合格环境可复现同一套画面；已在原目录和全新拷贝完成480帧演示并得到相同栅格SHA。不同口播统一视觉风格，分镜根据内容变化。MP4字节不保证跨编码器一致；FFmpeg解码、音频及平台差异需记录环境并复核。历史手工样片不是逐像素基准，本版本内置校准图和可执行模板是后续统一标准。
+
+安装旧版的人请用完整新版替换旧文件，运行检查后再生成；不要混合旧版mode/theme计划与标准template计划。
+
+未打包用户真人原始视频、私人项目、账号信息或参考博主素材。技术检查不代替字幕核对和听审。字体许可见assets/fonts/OFL.txt。

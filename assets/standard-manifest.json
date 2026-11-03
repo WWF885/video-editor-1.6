@@ -1,0 +1,22 @@
+{
+  "profile": "wenfeng-standard-v1",
+  "version": "1.0",
+  "files": {
+    "scripts/standard_style.py": "fd8bf2f2cdc07b992235e3d0b2cda14c8722175aff3266bb3d665ae20dac47db",
+    "scripts/render.py": "c9e9fffea1d57b7e7d5d2e243ff2a3f396a3afb5aba854aea24ca85a7f33088f",
+    "scripts/captions.py": "be64c8f297794a5d4826cc91ffcd559fae1449084afb064b65308a9b2dda1372",
+    "scripts/demo.py": "7c6b5be9278b3c98683c127eeda9be2ac9fec4da21d706445381c760b12434c0",
+    "scripts/run.py": "900219dced8ff9fe7f2eadfa190ccf098b1af85d62bc6209b998ae3ec3d346bc",
+    "scripts/visuals.py": "1e2227e6c9134cb9f830f30762bf1b83b05ed6c315965c2274a0cde8e7f4ca37",
+    "scripts/verify_standard.py": "261528ba6607ede5b7cd8cd1b1057a2906c00e71fac6bdd3559e854568307d81",
+    "assets/fonts/OFL.txt": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
+    "assets/fonts/NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+    "assets/reference-source.png": "9813685b5b41d459c15efd29aaf8824809c40e1b18172d9b9f7541bed21342b8",
+    "assets/demo-insert.png": "f467bc1820919f292fe42ffd933ee3c08ec29a57d76d8db1f747e4e6ea2bc5b9",
+    "assets/standard-demo.json": "37fde39987ed7500c6a6176aba67faa5c14be1fe5092da496ff186ab8c51c2be",
+    "assets/demo-captions.json": "a78270eda2d7b8e80a596e7cabb8c697ac974ff994f12ea222365295491acccb",
+    "assets/reference-raster.json": "4c5df63a2d8299df6d94a679aea622169c68d383a078b5b93720cdf8b3c3eaa9",
+    "requirements.txt": "a3423d82decbeeefbd72a37981aaaf8eb0f8b4def9af1babfb0d7cfe3c156798",
+    "Dockerfile": "8e6ec086810eff73a4282eab74bff589b773aab9c47402b535eb817c10803cf2"
+  }
+}
