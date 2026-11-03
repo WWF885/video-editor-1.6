@@ -1,0 +1,20 @@
+{
+  "reviewer": "",
+  "video_sha256": "",
+  "report_sha256": "",
+  "evidence": [],
+  "checks": {
+    "original_opening": false,
+    "approved_title_and_keywords": false,
+    "paragraph_scene_changes": false,
+    "summary_no_corner_number": false,
+    "single_line_captions": false,
+    "hair_and_face_visible": false,
+    "circle_filled_and_positioned": false,
+    "no_content_occlusion": false,
+    "caption_timing_checked": false
+  },
+  "shoulders": "pending",
+  "source_limitation": "",
+  "listening_review": "not_performed"
+}

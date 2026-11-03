@@ -1,6 +1,6 @@
-# 文锋同款口播剪辑·标准版
+# 文锋同款口播剪辑 v1.5·严格执行版
 
-当前版本：**v1.4（圆窗布局确认版）**
+当前版本：**v1.5（严格执行版）**
 
 固定模板、内置字体与画面校验，让不同用户使用同一套画面生成程序。默认 `wenfeng-standard-v1`；AI只填写内容、选择模板和匹配素材，不临时改写样式。
 
@@ -41,7 +41,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 
 未打包用户真人原始视频、私人项目、账号信息或参考博主素材。技术检查不代替字幕核对和听审。字体许可见assets/fonts/OFL.txt。
 
-技能调用名：`wwf-video-editor`。英文技能及项目命名统一使用 `wwf` 前缀。
+技能调用名：`wwf-video-editor-v1-5`。英文技能及项目命名统一使用 `wwf` 前缀。
 
 ## 1.4 默认剪辑规则
 
@@ -50,7 +50,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 - 圆形头像必须等比铺满原视频，不留白。优先完整头发和整张脸（含下巴），再考虑肩部；保留白边与立体阴影，逐段检查运动。
 - 按完整语义段划分paragraphs，每段一场景，相邻模板必须不同。
 - 左上角为当前段落概述，右上角不显示序号。
-- plan需使用standard_version=1.4，并填写opening_title、paragraphs、presenter.framing_confirmed；旧计划需重新检查和编排，不能仅改版本号。
+- plan需使用standard_version=1.5，并填写opening_title、paragraphs、presenter.framing_confirmed；旧计划需重新检查和编排，不能仅改版本号。
 
 1.4 圆窗更新：取消圆内缩小矩形与底色留白，采用原片cover铺满；头发、整张脸优先于肩膀。附防留白回归检查。
 
@@ -75,3 +75,24 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 将上述字段合并到支持圆窗的场景中。presenter_space 为归一化的 x、y、宽、高；先检查整段文字、箭头、素材占用，再指定空白区域。没有足够空白时使用下方居中；人物裁切仍须完整保留头发和整张脸。允许大小120–220px，白边与阴影由模板固定生成。
 
 已用真人口播完成37.58秒样片渲染和全文件解码检查；尚未完成正常速度听审。更新时请完整替换旧版文件，运行自检后再生成。
+
+## v1.5 安装一致性与正式交付
+
+技能调用名：`wwf-video-editor-v1-5`；显示名称：文锋同款口播剪辑 v1.5·严格执行版。旧版技能请停用，完整安装新版，禁止把新旧文件混合覆盖。请使用同一固定提交的下载包，不要仅比较名称或使用会变化的main分支来约定版本。
+
+安装完成后运行：
+
+```bash
+python scripts/run.py --version
+python scripts/run.py --check
+```
+
+应输出standard_version=1.5，并且双方的package_fingerprint完全相同、40个画面校验点通过。安装缺文件、文件被修改或版本混用时会停止。README不参与运行包校验。
+
+生成结果先为候选成片。复制assets/visual-review-template.json到项目目录，实际逐段抽帧核对标题、头脸、肩部、圆窗位置、遮挡、分镜和字幕时间；填写真实审核者、证据以及成片和review报告的SHA256。检查项默认未通过，禁止未检查直接勾选。然后执行：
+
+```bash
+python scripts/finalize.py --video work/final.mp4 --review work/visual-review.json
+```
+
+仅.delivery.json的status为approved_for_delivery才可当正式成片交付；没有审核的只能明确标作草稿。记录绑定当前视频、报告和安装指纹，改视频必须重新审核。未执行听审须如实记录not_performed。此机制不能证明人工勾选真实，也无法强制约束绕过程序的Agent；不能运行内置程序时应说明限制。

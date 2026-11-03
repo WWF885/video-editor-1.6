@@ -8,7 +8,7 @@
  "cuts":[{"in":1.0,"out":26.2},{"in":36.8,"out":53.9}],
  "scenes":[
   {"start":0,"end":3,"mode":"overlay","title":"做值钱的IP","items":[{"at":0,"text":"不做短暂的网红"}]},
-  {"start":17,"end":25,"mode":"steps","title":"01  让业务和价值被看见","items":[{"at":17.3,"text":"低成本流量"},{"at":21.4,"text":"业务被看见"},{"at":23.4,"text":"自己更值钱"}]}
+  {"start":17,"end":25,"mode":"steps","title":"01  让业务和价值被看见","items":[{"at":17.3,"text":"低成本流量"},{"at":21.5,"text":"业务被看见"},{"at":23.4,"text":"自己更值钱"}]}
  ]
 }
 ```

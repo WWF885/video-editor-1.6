@@ -11,6 +11,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = "wenfeng-standard-v1"
+VERSION = "1.5"
+SKILL_NAME = "wwf-video-editor-v1-5"
 
 def check_environment():
     failures = []
@@ -35,11 +37,16 @@ def check_environment():
         failures.append("Missing assets/standard-manifest.json; download the complete standard release")
     else:
         manifest = json.loads(manifest_path.read_text())
+        if manifest.get("version") != VERSION:
+            failures.append("Package version mismatch; install the complete v" + VERSION)
         if manifest.get("profile") != PROFILE:
             failures.append("Standard manifest profile mismatch")
         files = manifest.get("files", {})
         font = "assets/fonts/NotoSansCJKsc-Regular.otf"
         if font not in files: failures.append("Standard manifest must include the bundled font checksum")
+        actual_files={str(f.relative_to(ROOT)) for f in ROOT.rglob("*") if f.is_file() and "__pycache__" not in f.parts and f.suffix != ".pyc" and f.name != "standard-manifest.json" and f.name != "README.md"}
+        if actual_files != set(files):
+            failures.append("Incomplete or mixed package file list; replace the entire installation")
         for relative, expected in files.items():
             path = (ROOT / relative).resolve()
             if not path.is_relative_to(ROOT):
@@ -49,10 +56,11 @@ def check_environment():
                 failures.append("Standard asset modified: " + relative)
     if failures:
         raise SystemExit("Standard environment check failed:\n- " + "\n- ".join(failures) + "\nInstall packages with: python -m pip install -r requirements.txt")
-    return {"python": platform.python_version(), "packages": {line.split("==")[0]: version(line.split("==")[0]) for line in (ROOT / "requirements.txt").read_text().splitlines() if "==" in line}, **tools}
+    return {"skill_name":SKILL_NAME,"standard_version":VERSION,"package_fingerprint":hashlib.sha256(manifest_path.read_bytes()).hexdigest(),"python": platform.python_version(), "packages": {line.split("==")[0]: version(line.split("==")[0]) for line in (ROOT / "requirements.txt").read_text().splitlines() if "==" in line}, **tools}
 
 def main():
     parser = argparse.ArgumentParser(description="Render the locked Wenfeng standard template")
+    parser.add_argument("--version", action="version", version=SKILL_NAME+" "+VERSION)
     parser.add_argument("--source")
     parser.add_argument("--plan")
     parser.add_argument("--captions")
@@ -75,7 +83,7 @@ def main():
     plan = json.loads(Path(args.plan).read_text())
     if plan.get("style_profile", PROFILE) != PROFILE:
         parser.error("run.py accepts only wenfeng-standard-v1; custom/legacy rendering uses render.py explicitly")
-    if plan.get("standard_version", "1.4") != "1.4":
+    if plan.get("standard_version", "1.5") != "1.5":
         parser.error("Unsupported standard_version; use the matching release")
     # Make omitted profile explicit; never mutate the author's plan on disk.
     if "style_profile" not in plan:
@@ -89,6 +97,10 @@ def main():
         n=round(t*1000)
         return f'{n//3600000:02}:{n//60000%60:02}:{n//1000%60:02},{n%1000:03}'
     output.with_suffix('.srt').write_text(''.join(f"{i+1}\n{timestamp(c['start'])} --> {timestamp(c['end'])}\n{c['text']}\n\n" for i,c in enumerate(cues)),encoding='utf-8')
+    report_path=output.with_suffix(".review.json")
+    report=json.loads(report_path.read_text())
+    report.update(delivery_status="candidate_pending_visual_review",standard_version=VERSION,package_fingerprint=environment["package_fingerprint"],output_sha256=hashlib.sha256(output.read_bytes()).hexdigest())
+    report_path.write_text(json.dumps(report,ensure_ascii=False,indent=2))
     output.with_suffix(".environment.json").write_text(json.dumps(environment, ensure_ascii=False, indent=2))
 
 if __name__ == "__main__":

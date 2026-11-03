@@ -74,8 +74,8 @@ def validate_standard_plan(plan, cues, fontpath):
     """Validate the entire public fixed-style plan before opening the encoder."""
     if set(plan) - TOP_FIELDS:
         raise ValueError('Unsupported standard plan fields: ' + ', '.join(sorted(set(plan) - TOP_FIELDS)))
-    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.4':
-        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.4')
+    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.5':
+        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.5')
     for key, value in [('width', W), ('height', H), ('fps', FPS)]:
         if plan.get(key, value) != value:
             raise ValueError(f'Standard mode locks {key}={value}')
