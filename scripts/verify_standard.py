@@ -44,5 +44,5 @@ def samples():
 def main():
     check_environment();actual=samples();expected=json.loads((ROOT/'assets/reference-raster.json').read_text())
     if actual!=expected:raise SystemExit('Raster verification failed: check pinned environment, full package and font; do not silently render a different style')
-    print(json.dumps({'profile':'wenfeng-standard-v1','standard_version':'1.3','raster_samples':len(actual),'status':'passed'},ensure_ascii=False))
+    print(json.dumps({'profile':'wenfeng-standard-v1','standard_version':'1.4','raster_samples':len(actual),'status':'passed'},ensure_ascii=False))
 if __name__=='__main__':main()

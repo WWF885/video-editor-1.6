@@ -16,7 +16,7 @@ NAVY, INK, WHITE, CYAN, BLUE = '#0B1526', '#15263D', '#F7F9FC', '#58E5D0', '#267
 TRANSITION_SECONDS = .24
 TEMPLATES = ('opening', 'presenter', 'path', 'statement', 'amplifier', 'compare', 'list', 'media')
 TOP_FIELDS = {'style_profile', 'standard_version', 'width', 'height', 'fps', 'cuts', 'scenes', 'presenter', 'duration', 'opening_title', 'paragraphs'}
-COMMON_FIELDS = {'start', 'end', 'template', 'title', 'subtitle', 'show_presenter', 'presenter_position', 'presenter', 'reason'}
+COMMON_FIELDS = {'start', 'end', 'template', 'title', 'subtitle', 'show_presenter', 'presenter_position', 'presenter_size', 'presenter_space', 'presenter', 'reason'}
 CONTENT_FIELDS = {
     'opening': set(),
     'presenter': set(),
@@ -74,8 +74,8 @@ def validate_standard_plan(plan, cues, fontpath):
     """Validate the entire public fixed-style plan before opening the encoder."""
     if set(plan) - TOP_FIELDS:
         raise ValueError('Unsupported standard plan fields: ' + ', '.join(sorted(set(plan) - TOP_FIELDS)))
-    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.3':
-        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.3')
+    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.4':
+        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.4')
     for key, value in [('width', W), ('height', H), ('fps', FPS)]:
         if plan.get(key, value) != value:
             raise ValueError(f'Standard mode locks {key}={value}')
@@ -151,8 +151,19 @@ def validate_standard_plan(plan, cues, fontpath):
         presenter(scene.get('presenter', {}))
         if not isinstance(scene.get('show_presenter', True), bool):
             raise ValueError('show_presenter must be boolean')
-        if scene.get('presenter_position', 'bottom_right') not in ('bottom_left', 'bottom_right'):
-            raise ValueError('Circle position is bottom_left or bottom_right')
+        position=scene.get('presenter_position','bottom_center')
+        if position not in ('bottom_center','bottom_left','bottom_right','top'):
+            raise ValueError('Use bottom_center or top for circle position')
+        size=scene.get('presenter_size',184)
+        if isinstance(size,bool) or not isinstance(size,int) or not 120<=size<=220:
+            raise ValueError('presenter_size must be an integer from 120 to 220px')
+        if position=='top':
+            space=scene.get('presenter_space')
+            if not isinstance(space,list) or len(space)!=4:
+                raise ValueError('Top circle requires an inspected empty presenter_space [x,y,width,height]')
+            x,y,w,h=[_number(v,'presenter_space') for v in space]
+            if min(x,y,w,h)<0 or x+w>1 or y<.27 or y+h>.68 or min(w*W,h*H)<120:
+                raise ValueError('Top empty space must fit a 120px circle inside the upper content safe area')
         if template in ('path','amplifier','compare','list','media') and scene.get('show_presenter',True):
             config=scene.get('presenter',plan.get('presenter',{}))
             if config.get('framing_confirmed') is not True or 'crop' not in config:
@@ -259,11 +270,17 @@ class StandardStyle:
 
     def circle(self, im, frame, scene):
         if scene.get('show_presenter', True):
-            x = 40 if scene.get('presenter_position') == 'bottom_left' else 288
+            size=scene.get('presenter_size',184)
+            if scene.get('presenter_position')=='top':
+                sx,sy,sw,sh=scene['presenter_space']
+                size=min(size,int(sw*W),int(sh*H))
+                x=round((sx+sw/2)*W-size/2);y=round((sy+sh/2)*H-size/2)
+            else:
+                x=(W-size)//2;y=790-size
             crop = scene.get('_presenter_crop_base')
             if crop is None:
                 crop = self.plan.get('_presenter_crop_base')
-            circular_presenter(im, frame, (x, 606, 184), crop, preserve_all=True)
+            circular_presenter(im, frame, (x, y, size), crop, preserve_all=True)
 
     def _caption(self, im, t):
         cue = next((c for c in self.cues if c['start'] <= t < c['end']), None)

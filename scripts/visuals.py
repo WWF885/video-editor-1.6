@@ -6,10 +6,10 @@ import math
 def frosted_background(width, height, light=False):
     im=Image.new('RGBA',(width,height),'#DFEAF2' if light else '#102536')
     glow=Image.new('RGBA',im.size);d=ImageDraw.Draw(glow)
-    for box,color in [((-.3,.03,.66,.58),(67,168,177,165)),((.31,.35,1.37,1.08),(65,93,175,160)),((-.35,.71,.55,1.32),(147,176,172,110))]:
+    for box,color in [((-.3,.03,.66,.58),(67,168,177,165)),((.31,.35,1.47,1.08),(65,93,175,160)),((-.35,.71,.55,1.42),(147,176,172,110))]:
         d.ellipse(tuple(round(v*(width if i%2==0 else height)) for i,v in enumerate(box)),fill=color)
     im=Image.alpha_composite(im,glow.filter(ImageFilter.GaussianBlur(width*.166)))
-    arr=np.array(im);noise=np.random.default_rng(34).normal(0,1.3,(height,width,1));arr[:,:,:3]=np.clip(arr[:,:,:3].astype(float)+noise,0,255).astype('uint8');im=Image.fromarray(arr)
+    arr=np.array(im);noise=np.random.default_rng(34).normal(0,1.4,(height,width,1));arr[:,:,:3]=np.clip(arr[:,:,:3].astype(float)+noise,0,255).astype('uint8');im=Image.fromarray(arr)
     glass=Image.new('RGBA',im.size);d=ImageDraw.Draw(glass);s=width/512
     d.rounded_rectangle((16*s,24*s,width-16*s,height-42*s),radius=32*s,fill=(255,255,255,85) if light else (185,222,237,17),outline=(255,255,255,110),width=max(1,round(s)))
     return Image.alpha_composite(im,glass).convert('RGB')

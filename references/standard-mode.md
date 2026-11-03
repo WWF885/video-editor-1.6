@@ -15,7 +15,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 Dockerfile提供隔离安装入口，构建`docker build -t wenfeng-editor .`，Windows/macOS/Linux可以挂载工作目录后运行。Docker构建使用固定Python与Python依赖；操作系统包仓库会变化，不能把同一Dockerfile当作不可变镜像。严格跨机器复现需使用同一已构建镜像摘要与CPU架构；当前包不宣称已发布或测试这样的镜像。
 
 ## 锁定与可填写字段
-必须给出`style_profile: "wenfeng-standard-v1"`，必须给出`standard_version: "1.3"`；width512、height902、fps30固定。未知字段、其他颜色/字体/尺寸/字幕位置会报错。cuts记录主口播源入出点；没有cuts时保留全片。scenes从0开始连续覆盖完整成片。字幕使用最终成片真实时刻。
+必须给出`style_profile: "wenfeng-standard-v1"`，必须给出`standard_version: "1.4"`；width512、height902、fps30固定。未知字段、其他颜色/字体/尺寸/字幕位置会报错。cuts记录主口播源入出点；没有cuts时保留全片。scenes从0开始连续覆盖完整成片。字幕使用最终成片真实时刻。
 
 开场必须用opening模板，直接显示原视频全画面，艺术字标题第一帧可见。渲染前必须提供3个候选标题供用户选择，或采用用户自定标题。plan.opening_title记录`{"text":"选定标题","approved":true,"source":"chosen"}`；source可以user表示自定，禁止伪造approved。
 paragraphs是完整语义段列表，每项`{"start":0,"end":3,"summary":"本段概述"}`，与scenes在时间、数量上一一对应且覆盖全片。相邻scene的template必须不同；首段opening，后段可在7种模板中轮换。左上角显示summary，右上角不显示编号。标题、图解超宽时精简概括；字幕超宽时按真实语音分句，禁止缩字或均分时间。对白cue为`start,end,text,highlights`，highlights最多2个，必须存在于文字中。字幕单行固定26px及底部深色底条。
@@ -47,3 +47,5 @@ run.py同时校验standard-manifest.json中的字体和程序文件。渲染revi
 标准演示的预置标题与approved标记仅用于无口播的合成校准，不代表用户确认过真实作品；剪辑真实口播时必须重新获取用户选定标题。
 
 开场爆款标题：固定大字52px，短标题一行，长标题按语意分成两行（最多两行），禁止缩小字号塞入一行。opening_title.highlights 必填1–3个原文关键词，以暖金色、加粗描边与白色正文区分；opening_title.lines 可指定分行，拼接必须与已确认标题完全一致，关键词不得跨行。标题不得遮挡人物头发与脸；对白字幕仍严格单行。
+
+圆窗位置与缩放：默认下方水平居中（bottom_center），底边固定在790px、避开单行字幕；旧bottom_left/bottom_right计划也统一居中。presenter_size允许120–220px，默认184px。上方使用top，先检查整段文字、图解和素材的占用范围，再填写空白区域presenter_space=[x,y,width,height]（归一化，位于y=.27–.68）；圆窗居中于该区域并自动缩小至容纳范围。不得遮挡信息；若整段没有足够空白，则移到下方居中。位置与大小按场景固定，禁止随每帧检测跳动；缩放后仍须逐段检查完整头发与整张脸。脚本不自动识别空白，空白区域由编排阶段检查后指定。
