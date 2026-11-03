@@ -1,4 +1,4 @@
-# wwf-video-editor-v1-5
+# video-editor 1.5
 
 当前版本：**v1.5（严格执行版）**
 
@@ -41,7 +41,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 
 未打包用户真人原始视频、私人项目、账号信息或参考博主素材。技术检查不代替字幕核对和听审。字体许可见assets/fonts/OFL.txt。
 
-技能调用名：`wwf-video-editor-v1-5`。英文技能及项目命名统一使用 `wwf` 前缀。
+技能调用名：`video-editor-v1-5`。英文技能及项目命名统一使用 `wwf` 前缀。
 
 ## 1.4 默认剪辑规则
 
@@ -78,7 +78,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 
 ## v1.5 安装一致性与正式交付
 
-技能调用名：`wwf-video-editor-v1-5`；显示名称：wwf-video-editor-v1-5。旧版技能请停用，完整安装新版，禁止把新旧文件混合覆盖。请使用同一固定提交的下载包，不要仅比较名称或使用会变化的main分支来约定版本。
+技能调用名：`video-editor-v1-5`；显示名称：video-editor 1.5。旧版技能请停用，完整安装新版，禁止把新旧文件混合覆盖。请使用同一固定提交的下载包，不要仅比较名称或使用会变化的main分支来约定版本。
 
 安装完成后运行：
 

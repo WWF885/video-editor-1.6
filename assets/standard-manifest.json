@@ -3,8 +3,8 @@
   "version": "1.5",
   "files": {
     "Dockerfile": "8e6ec086810eff73a4282eab74bff589b773aab9c47402b535eb817c10803cf2",
-    "SKILL.md": "f275087ea733df29d7f0468f3b4c27e293fce78ec7b0d261b8580565068a467e",
-    "agents/openai.yaml": "47212d4777f24fd1c9c95ab7ec67da0cb64d636276bf728eef1e1f9afb4f7f50",
+    "SKILL.md": "ea99e5f4566fb8a75684689703ebe36727a1329d09b07761ef4f6c91eedcfbb4",
+    "agents/openai.yaml": "b0dbc30dbe8375bad946d4cf7978779a21dbb41c3dc577872d6d8202f9c6243c",
     "assets/demo-captions.json": "a78270eda2d7b8e80a596e7cabb8c697ac974ff994f12ea222365295491acccb",
     "assets/demo-insert.png": "f467bc1820919f292fe42ffd933ee3c08ec29a57d76d8db1f747e4e6ea2bc5b9",
     "assets/fonts/NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
@@ -25,7 +25,7 @@
     "scripts/demo.py": "7c6b5be9278b3c98683c127eeda9be2ac9fec4da21d706445381c760b12434c0",
     "scripts/finalize.py": "543e95fdf1943488d173beea0c211ed592892cf6bab2219fb54bc574caaf0e68",
     "scripts/render.py": "16787529c74ca1a2c26db4cdf18dae5689b3f241662d627bedf8a6e53031962f",
-    "scripts/run.py": "4690fe5636d220f9100edbfc61fbe2c6803a160462ea76b7c8811be5484ede5b",
+    "scripts/run.py": "322b29f15c863e29e4fce8e93f6b91888027dd8f02f2ed3f58d868f842037e77",
     "scripts/standard_style.py": "b1d009035bccc77af98e579c72e9f1e92eea21067631418fa45797b70ed458cd",
     "scripts/verify_standard.py": "ab82ca2c94512ef58887f3082d18d6568f3633ddf33a0e514000e86a7280a24f",
     "scripts/visuals.py": "23a49fa636f42ba3dbf797ca46ebe35836ce06635f05f4c0c2c5b328afdf968e"

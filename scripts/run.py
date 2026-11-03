@@ -12,7 +12,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = "wenfeng-standard-v1"
 VERSION = "1.5"
-SKILL_NAME = "wwf-video-editor-v1-5"
+SKILL_NAME = "video-editor-v1-5"
 
 def check_environment():
     failures = []
