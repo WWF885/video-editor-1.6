@@ -1,22 +1,23 @@
 {
   "style_profile": "wenfeng-standard-v1",
-  "standard_version": "1.0",
+  "standard_version": "1.1",
   "width": 512,
   "height": 902,
   "fps": 30,
   "presenter": {
     "crop": [
       0,
-      0.07760532150776053,
+      0.13,
       1,
-      0.6452328159645233
-    ]
+      0.86
+    ],
+    "framing_confirmed": true
   },
   "scenes": [
     {
       "start": 0,
       "end": 2,
-      "template": "presenter",
+      "template": "opening",
       "title": "标准模板效果演示",
       "subtitle": "合成校准素材 · 无真人与口播"
     },
@@ -150,13 +151,56 @@
     {
       "start": 14,
       "end": 16,
-      "template": "media",
-      "title": "原速动态素材",
-      "asset": "demo-source.mp4",
-      "asset_in": 2,
-      "asset_out": 4,
-      "show_presenter": true,
-      "asset_audio": "mute"
+      "template": "presenter",
+      "title": "回到真人主画面",
+      "subtitle": "演示取景与清晰表达"
+    }
+  ],
+  "opening_title": {
+    "text": "标准模板效果演示",
+    "approved": true,
+    "source": "user"
+  },
+  "paragraphs": [
+    {
+      "start": 0,
+      "end": 2,
+      "summary": "明确主题"
+    },
+    {
+      "start": 2,
+      "end": 4,
+      "summary": "表达路径"
+    },
+    {
+      "start": 4,
+      "end": 6,
+      "summary": "观点对照"
+    },
+    {
+      "start": 6,
+      "end": 8,
+      "summary": "价值汇聚"
+    },
+    {
+      "start": 8,
+      "end": 10,
+      "summary": "步骤拆解"
+    },
+    {
+      "start": 10,
+      "end": 12,
+      "summary": "两种方式"
+    },
+    {
+      "start": 12,
+      "end": 14,
+      "summary": "证据展示"
+    },
+    {
+      "start": 14,
+      "end": 16,
+      "summary": "总结收束"
     }
   ]
 }

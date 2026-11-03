@@ -75,7 +75,7 @@ def main():
     plan = json.loads(Path(args.plan).read_text())
     if plan.get("style_profile", PROFILE) != PROFILE:
         parser.error("run.py accepts only wenfeng-standard-v1; custom/legacy rendering uses render.py explicitly")
-    if plan.get("standard_version", "1.0") != "1.0":
+    if plan.get("standard_version", "1.1") != "1.1":
         parser.error("Unsupported standard_version; use the matching release")
     # Make omitted profile explicit; never mutate the author's plan on disk.
     if "style_profile" not in plan:

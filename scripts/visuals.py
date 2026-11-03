@@ -1,6 +1,7 @@
 """Reusable frosted background and source-video circular presenter."""
 from PIL import Image, ImageDraw, ImageFilter
 import numpy as np
+import math
 
 def frosted_background(width, height, light=False):
     im=Image.new('RGBA',(width,height),'#DFEAF2' if light else '#102536')
@@ -13,19 +14,31 @@ def frosted_background(width, height, light=False):
     d.rounded_rectangle((16*s,24*s,width-16*s,height-42*s),radius=32*s,fill=(255,255,255,85) if light else (185,222,237,17),outline=(255,255,255,110),width=max(1,round(s)))
     return Image.alpha_composite(im,glass).convert('RGB')
 
-def circular_presenter(canvas, source, box, crop=None):
-    """box=(x,y,diameter); crop normalized square in source, never generated identity."""
+def circular_presenter(canvas, source, box, crop=None, preserve_all=False):
+    """Draw original ROI. preserve_all inscribes the entire proportional ROI inside the circle."""
     x,y,size=map(round,box)
     if size<8 or x<0 or y<0 or x+size>canvas.width or y+size>canvas.height:raise ValueError('Circle outside canvas')
     if crop is None:
-        side=min(source.size);left=(source.width-side)//2;top=(source.height-side)//2
-        bounds=(left,top,left+side,top+side)
+        if preserve_all:bounds=(0,0,source.width,source.height)
+        else:
+            side=min(source.size);left=(source.width-side)//2;top=(source.height-side)//2
+            bounds=(left,top,left+side,top+side)
     else:
         if len(crop)!=4 or not all(0<=v<=1 for v in crop):raise ValueError('Invalid normalized crop')
         bounds=tuple(round(v*(source.width if i%2==0 else source.height)) for i,v in enumerate(crop))
-        if bounds[2]<=bounds[0] or bounds[3]<=bounds[1] or abs((bounds[2]-bounds[0])-(bounds[3]-bounds[1]))>2:raise ValueError('Crop must be square; preserve proportions')
+        if bounds[2]<=bounds[0] or bounds[3]<=bounds[1]:raise ValueError('Crop must have positive dimensions')
+        if not preserve_all and abs((bounds[2]-bounds[0])-(bounds[3]-bounds[1]))>2:raise ValueError('Legacy crop must be square; preserve proportions')
     s=size/184;rim=max(2,round(3*s));inner=size-2*rim
-    pic=source.crop(bounds).resize((inner,inner),Image.Resampling.LANCZOS).convert('RGBA')
+    roi=source.crop(bounds)
+    if preserve_all:
+        # A rectangle whose diagonal is at most 90% of the inner diameter is
+        # wholly inside the circle, so the mask cannot clip selected hair/shoulders.
+        scale=inner*.90/math.hypot(roi.width,roi.height)
+        pw=max(1,math.floor(roi.width*scale));ph=max(1,math.floor(roi.height*scale))
+        pic=Image.new('RGBA',(inner,inner),(17,39,57,255))
+        roi=roi.resize((pw,ph),Image.Resampling.LANCZOS).convert('RGBA')
+        pic.paste(roi,((inner-pw)//2,(inner-ph)//2))
+    else:pic=roi.resize((inner,inner),Image.Resampling.LANCZOS).convert('RGBA')
     shadow=Image.new('RGBA',canvas.size);d=ImageDraw.Draw(shadow);offset=round(6*s)
     d.ellipse((x,y+offset,x+size,y+size+offset),fill=(3,13,26,105));shadow=shadow.filter(ImageFilter.GaussianBlur(7*s))
     result=Image.alpha_composite(canvas.convert('RGBA'),shadow)

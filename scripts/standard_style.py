@@ -7,17 +7,18 @@ the scene. No media decoding, audio changes, random layout or network access.
 import math
 import re
 from functools import lru_cache
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from visuals import circular_presenter, frosted_background
 
 PROFILE = 'wenfeng-standard-v1'
 W, H, FPS = 512, 902, 30
 NAVY, INK, WHITE, CYAN, BLUE = '#0B1526', '#15263D', '#F7F9FC', '#58E5D0', '#2671D9'
 TRANSITION_SECONDS = .24
-TEMPLATES = ('presenter', 'path', 'statement', 'amplifier', 'compare', 'list', 'media')
-TOP_FIELDS = {'style_profile', 'standard_version', 'width', 'height', 'fps', 'cuts', 'scenes', 'presenter', 'duration'}
+TEMPLATES = ('opening', 'presenter', 'path', 'statement', 'amplifier', 'compare', 'list', 'media')
+TOP_FIELDS = {'style_profile', 'standard_version', 'width', 'height', 'fps', 'cuts', 'scenes', 'presenter', 'duration', 'opening_title', 'paragraphs'}
 COMMON_FIELDS = {'start', 'end', 'template', 'title', 'subtitle', 'show_presenter', 'presenter_position', 'presenter', 'reason'}
 CONTENT_FIELDS = {
+    'opening': set(),
     'presenter': set(),
     'path': {'nodes', 'takeaway'},
     'statement': {'before', 'after'},
@@ -49,8 +50,8 @@ def validate_standard_plan(plan, cues, fontpath):
     """Validate the entire public fixed-style plan before opening the encoder."""
     if set(plan) - TOP_FIELDS:
         raise ValueError('Unsupported standard plan fields: ' + ', '.join(sorted(set(plan) - TOP_FIELDS)))
-    if plan.get('style_profile') != PROFILE or plan.get('standard_version', '1.0') != '1.0':
-        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.0')
+    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.1':
+        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.1')
     for key, value in [('width', W), ('height', H), ('fps', FPS)]:
         if plan.get(key, value) != value:
             raise ValueError(f'Standard mode locks {key}={value}')
@@ -72,33 +73,74 @@ def validate_standard_plan(plan, cues, fontpath):
                 raise ValueError(f'{label} item is outside scene')
             text(item['text'], size, limit, label, True)
     def presenter(config):
-        if not isinstance(config, dict) or set(config) - {'crop'}:
-            raise ValueError('Standard presenter allows only a source-normalized crop')
+        if not isinstance(config, dict) or set(config) - {'crop', 'framing_confirmed'}:
+            raise ValueError('Standard presenter allows only crop and framing_confirmed')
         if 'crop' in config:
             _crop(config['crop'], 'presenter.crop')
+        if 'framing_confirmed' in config and not isinstance(config['framing_confirmed'],bool):
+            raise ValueError('framing_confirmed must be boolean after visual inspection')
     presenter(plan.get('presenter', {}))
+    opening=plan.get('opening_title')
+    if not isinstance(opening,dict) or set(opening)-{'text','approved','source','candidates'} or opening.get('approved') is not True or opening.get('source') not in ('user','chosen'):
+        raise ValueError('Confirm opening_title text before rendering: approved=true, source=user or chosen')
+    title_value=opening.get('text')
+    if not isinstance(title_value,str) or not title_value.strip() or '\n' in title_value or '\r' in title_value:
+        raise ValueError('opening_title.text must be a nonempty title')
+    def art_lines(value):
+        lines=[];line=''
+        for ch in value:
+            if font(38).getlength(line+ch)>440 and line:lines.append(line);line=''
+            line+=ch
+        if line:lines.append(line)
+        if len(lines)>2:raise ValueError('Opening art title needs at most two lines at fixed font size; shorten title')
+        return lines
+    art_lines(title_value)
+    if opening.get('source')=='chosen':
+        candidates=opening.get('candidates')
+        if not isinstance(candidates,list) or len(candidates)!=3 or any(not isinstance(v,str) or not v.strip() for v in candidates) or title_value not in candidates:
+            raise ValueError('Chosen opening title requires exactly three candidates and must match the chosen candidate')
+    paragraphs=plan.get('paragraphs')
+    if not isinstance(paragraphs,list) or not paragraphs:raise ValueError('Provide speech-aligned paragraphs with summaries')
+    p_end=0
+    for paragraph in paragraphs:
+        if not isinstance(paragraph,dict) or set(paragraph)!={'start','end','summary'}:raise ValueError('Paragraphs require exactly start,end,summary')
+        pa,pb=_number(paragraph['start'],'paragraph.start'),_number(paragraph['end'],'paragraph.end')
+        if abs(pa-p_end)>1e-6 or pb<=pa:raise ValueError('Paragraphs must be contiguous from zero')
+        text(paragraph['summary'],18,360,'paragraph summary',True);p_end=pb
     scenes = plan.get('scenes')
     if not isinstance(scenes, list) or not scenes:
         raise ValueError('Standard mode requires explicit contiguous scenes')
+    if len(scenes)!=len(paragraphs):raise ValueError('Each speech paragraph requires its own scene')
     previous = 0
     for index, scene in enumerate(scenes):
         if not isinstance(scene, dict) or scene.get('template') not in TEMPLATES:
             raise ValueError('Unknown standard template')
         template = scene['template']
+        if index==0 and template!='opening':raise ValueError('First scene must use opening: original full-frame video')
+        if index and template=='opening':raise ValueError('Opening is only allowed as the first scene')
+        if index and template==scenes[index-1]['template']:raise ValueError('Adjacent paragraphs must change display template')
         extra = set(scene) - COMMON_FIELDS - CONTENT_FIELDS[template]
         if extra:
             raise ValueError('Unsupported standard scene fields: ' + ', '.join(sorted(extra)))
         start, end = _number(scene.get('start'), 'start'), _number(scene.get('end'), 'end')
         if start < 0 or end <= start or abs(start - previous) > 1e-6:
             raise ValueError('Standard scenes must be contiguous, start at zero and have positive duration')
+        if abs(start-paragraphs[index]['start'])>1e-6 or abs(end-paragraphs[index]['end'])>1e-6:raise ValueError('Each scene must match its speech paragraph timing')
         previous = end
-        text(scene.get('title', ''), 32 if index == 0 else 38, 440, 'title', index == 0)
+        if index==0:
+            if scene.get('title')!=title_value:raise ValueError('First scene title must match the approved opening title')
+            art_lines(scene['title'])
+        else:text(scene.get('title', ''),38,440,'title')
         text(scene.get('subtitle', ''), 19, 440, 'subtitle')
         presenter(scene.get('presenter', {}))
         if not isinstance(scene.get('show_presenter', True), bool):
             raise ValueError('show_presenter must be boolean')
         if scene.get('presenter_position', 'bottom_right') not in ('bottom_left', 'bottom_right'):
             raise ValueError('Circle position is bottom_left or bottom_right')
+        if template in ('path','amplifier','compare','list','media') and scene.get('show_presenter',True):
+            config=scene.get('presenter',plan.get('presenter',{}))
+            if config.get('framing_confirmed') is not True or 'crop' not in config:
+                raise ValueError('Circle needs an explicitly inspected crop with full hair and both shoulders, framing_confirmed=true')
         if template == 'path':
             if len(scene.get('nodes', [])) != 2:
                 raise ValueError('Path requires exactly two timed nodes')
@@ -205,7 +247,7 @@ class StandardStyle:
             crop = scene.get('_presenter_crop_base')
             if crop is None:
                 crop = self.plan.get('_presenter_crop_base')
-            circular_presenter(im, frame, (x, 606, 184), crop)
+            circular_presenter(im, frame, (x, 606, 184), crop, preserve_all=True)
 
     def _caption(self, im, t):
         cue = next((c for c in self.cues if c['start'] <= t < c['end']), None)
@@ -226,19 +268,51 @@ class StandardStyle:
             x += self.font(26).getlength(span)
         return Image.alpha_composite(im,layer)
 
+    def art_title(self, im, value):
+        lines=[];line=''
+        for ch in value:
+            if self.font(38).getlength(line+ch)>440 and line:lines.append(line);line=''
+            line+=ch
+        if line:lines.append(line)
+        mask=Image.new('L',(W,H));md=ImageDraw.Draw(mask)
+        shadow=Image.new('RGBA',(W,H));sd=ImageDraw.Draw(shadow)
+        outline=Image.new('RGBA',(W,H));od=ImageDraw.Draw(outline)
+        for j,line in enumerate(lines):
+            yy=104+j*53
+            sd.text((259,yy+4),line,font=self.font(38),fill=(0,0,0,220),anchor='mm',stroke_width=3)
+            od.text((256,yy),line,font=self.font(38),fill=(0,0,0,0),anchor='mm',stroke_width=3,stroke_fill=(6,20,33,255))
+            md.text((256,yy),line,font=self.font(38),fill=255,anchor='mm')
+            md.text((256.6,yy),line,font=self.font(38),fill=255,anchor='mm')
+        im.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(3)))
+        im.alpha_composite(outline)
+        gradient=Image.new('RGBA',(W,H));gd=ImageDraw.Draw(gradient)
+        for yy in range(H):
+            q=max(0,min(1,(yy-77)/100));color=tuple(round(a*(1-q)+b*q) for a,b in zip((247,255,253),(88,229,208)))
+            gd.line((0,yy,W,yy),fill=(*color,255))
+        gradient.putalpha(mask);im.alpha_composite(gradient)
+
     def render(self, original_frame, t, scene_index, scene, *, media_image=None):
         if original_frame.size != (W,H):
             raise ValueError('StandardStyle requires a conformed 512x902 frame')
         template = scene['template']; u = max(0,t-scene['start']); p = smooth(u/.42)
         light = template in ('statement','compare','media') or (template == 'path' and scene_index % 2 == 1)
-        im = self.backgrounds[light].copy().convert('RGBA'); d=ImageDraw.Draw(im)
+        im = original_frame.convert('RGBA') if template=='opening' else self.backgrounds[light].copy().convert('RGBA'); d=ImageDraw.Draw(im)
         ink, accent, muted = (INK,BLUE,'#758599') if light else (WHITE,CYAN,'#8FA7BC')
-        d.line((32,103,480,103),fill='#CED9E5' if light else '#294052',width=1)
-        self.text(d,(32,63),'文锋 / 价值笔记',18,muted,'lm');self.text(d,(480,63),f'{scene_index+1:02d}',18,accent,'rm')
+        summary=self.plan['paragraphs'][scene_index]['summary']
         title=scene.get('title','');subtitle=scene.get('subtitle','')
-        self.text(d,(256,157+round(12*(1-p))),title,32 if scene_index==0 else 38,accent)
-        if subtitle:
-            self.text(d,(256,215),subtitle,19,ink)
+        if template=='opening':
+            # Keep the original first frame intact beneath the header/title overlays.
+            veil=Image.new('RGBA',(W,H));vd=ImageDraw.Draw(veil)
+            for yy in range(224):vd.line((0,yy,W,yy),fill=(6,17,29,round(185*(1-yy/224))))
+            im=Image.alpha_composite(im,veil);d=ImageDraw.Draw(im)
+            sw=self.font(18).getlength(summary);d.rounded_rectangle((24,20,42+sw,57),radius=12,fill=(10,27,42,180))
+            self.text(d,(33,38),summary,18,WHITE,'lm')
+            self.art_title(im,title)
+        else:
+            d.line((32,103,480,103),fill='#CED9E5' if light else '#294052',width=1)
+            self.text(d,(32,63),summary,18,muted,'lm')
+            self.text(d,(256,157+round(12*(1-p))),title,38,accent)
+            if subtitle:self.text(d,(256,215),subtitle,19,ink)
         if template=='presenter':
             # Aspect-preserving original source, no artificial subject enlargement.
             thumb=original_frame.resize((324,571),Image.Resampling.LANCZOS)

@@ -21,10 +21,22 @@ def samples():
     try:validate_standard_plan(broken,cues,font)
     except ValueError:pass
     else:raise AssertionError('Visual override was silently accepted')
+    import copy
+    cases=[]
+    bad=copy.deepcopy(plan);bad['opening_title']['approved']=False;cases.append((bad,'Confirm opening_title'))
+    bad=copy.deepcopy(plan);bad['scenes'][0]['template']='presenter';cases.append((bad,'First scene'))
+    bad=copy.deepcopy(plan);bad['scenes'][2]['template']=bad['scenes'][1]['template'];cases.append((bad,'Adjacent paragraphs'))
+    bad=copy.deepcopy(plan);bad['paragraphs'][1]['summary']='';cases.append((bad,'paragraph summary'))
+    bad=copy.deepcopy(plan);bad['presenter']['framing_confirmed']=False;cases.append((bad,'Circle needs'))
+    for bad,expected in cases:
+        try:validate_standard_plan(bad,cues,font)
+        except ValueError as error:
+            if expected not in str(error):raise AssertionError('Unexpected validation error: '+str(error))
+        else:raise AssertionError('Required user preference was not enforced: '+expected)
     return rows
 
 def main():
     check_environment();actual=samples();expected=json.loads((ROOT/'assets/reference-raster.json').read_text())
     if actual!=expected:raise SystemExit('Raster verification failed: check pinned environment, full package and font; do not silently render a different style')
-    print(json.dumps({'profile':'wenfeng-standard-v1','raster_samples':len(actual),'status':'passed'},ensure_ascii=False))
+    print(json.dumps({'profile':'wenfeng-standard-v1','standard_version':'1.1','raster_samples':len(actual),'status':'passed'},ensure_ascii=False))
 if __name__=='__main__':main()
