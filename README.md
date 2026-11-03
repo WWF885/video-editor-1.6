@@ -1,4 +1,4 @@
-# video-editor 1.5
+# video-editor-1.5
 
 当前版本：**v1.5（严格执行版）**
 
@@ -78,7 +78,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 
 ## v1.5 安装一致性与正式交付
 
-技能调用名：`video-editor-v1-5`；显示名称：video-editor 1.5。旧版技能请停用，完整安装新版，禁止把新旧文件混合覆盖。请使用同一固定提交的下载包，不要仅比较名称或使用会变化的main分支来约定版本。
+技能调用名：`video-editor-v1-5`；显示名称：video-editor-1.5。旧版技能请停用，完整安装新版，禁止把新旧文件混合覆盖。请使用同一固定提交的下载包，不要仅比较名称或使用会变化的main分支来约定版本。
 
 安装完成后运行：
 
