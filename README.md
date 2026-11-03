@@ -38,3 +38,5 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 安装旧版的人请用完整新版替换旧文件，运行检查后再生成；不要混合旧版mode/theme计划与标准template计划。
 
 未打包用户真人原始视频、私人项目、账号信息或参考博主素材。技术检查不代替字幕核对和听审。字体许可见assets/fonts/OFL.txt。
+
+技能调用名：`wwf-video-editor`。英文技能及项目命名统一使用 `wwf` 前缀。
