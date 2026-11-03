@@ -3,8 +3,8 @@
   "version": "1.5",
   "files": {
     "Dockerfile": "8e6ec086810eff73a4282eab74bff589b773aab9c47402b535eb817c10803cf2",
-    "SKILL.md": "5dde6a6412bdfdbc78a2aa03d29b95b22dc0f9c3ae9d8b6ab5e2cf629fbe144a",
-    "agents/openai.yaml": "526e894ac4f467d51a9c8ab391cfb04ef2a9786d8edd2b2b875f7f95623d3633",
+    "SKILL.md": "f275087ea733df29d7f0468f3b4c27e293fce78ec7b0d261b8580565068a467e",
+    "agents/openai.yaml": "47212d4777f24fd1c9c95ab7ec67da0cb64d636276bf728eef1e1f9afb4f7f50",
     "assets/demo-captions.json": "a78270eda2d7b8e80a596e7cabb8c697ac974ff994f12ea222365295491acccb",
     "assets/demo-insert.png": "f467bc1820919f292fe42ffd933ee3c08ec29a57d76d8db1f747e4e6ea2bc5b9",
     "assets/fonts/NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
