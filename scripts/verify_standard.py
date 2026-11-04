@@ -34,6 +34,7 @@ def samples():
     bad=copy.deepcopy(plan);bad['opening_title']['text']='标准，模板效果演示';cases.append((bad,'punctuation'))
     bad=copy.deepcopy(plan);bad['opening_title']['lines']=['标准模板效果','演示'];cases.append((bad,'two explicit lines'))
     bad=copy.deepcopy(plan);bad['cuts'][0]['in']=1;cases.append((bad,'frame zero'))
+    bad=copy.deepcopy(plan);bad['scenes'][1]['nodes'][0]['at']=3.2;cases.append((bad,'chronological display order'))
     for bad,expected in cases:
         try:validate_standard_plan(bad,cues,font)
         except ValueError as error:

@@ -67,7 +67,7 @@ def main():
     if standard:
         from standard_style import validate_presenter_geometry
         for scene in scenes:
-            if scene['template'] in ('path','amplifier','list','compare','media') and scene.get('show_presenter',True):
+            if scene['template'] in ('path','amplifier','list','compare','media') and scene.get('show_presenter',False):
                 validate_presenter_geometry(scene.get('presenter',plan.get('presenter',{})),(sw,sh))
     def source_crop_to_base(crop):
         if crop is None:return None
@@ -75,7 +75,7 @@ def main():
         scale=min(W/sw,H/sh);dw=round(sw*scale);dh=round(sh*scale);ox=(W-dw)//2;oy=(H-dh)//2
         return [(ox+crop[0]*dw)/W,(oy+crop[1]*dh)/H,(ox+crop[2]*dw)/W,(oy+crop[3]*dh)/H]
     def draw_presenter(im,original,s):
-        if not s.get('show_presenter',True):return
+        if not s.get('show_presenter',False):return
         if plan.get('presenter_shape','circle')=='circle':
             cfg=s.get('presenter',plan.get('presenter',{}));diameter=round(W*cfg.get('diameter',.36))
             circular_presenter(im,original,(W*cfg.get('x',.56),H*cfg.get('y',.67),diameter),source_crop_to_base(cfg.get('crop')))
@@ -211,6 +211,6 @@ def main():
                 if entry['kind']=='video':entry['container'].close()
         if enc.wait()!=0:raise RuntimeError('Encode failed')
     run('-i',out,'-f','null','-')
-    report={'source_to_final':mapping,'duration':total,'input_hashes':{name:hashlib.sha256(Path(path).read_bytes()).hexdigest() for name,path in [('source',src),('plan',a.plan),('captions',a.captions)]},'style_profile':profile or 'legacy','renderer_version':'1.6' if standard else 'legacy','raster_sha256':raster_hash.hexdigest(),'frame_count':frame_count,'font_sha256':hashlib.sha256(Path(a.font).read_bytes()).hexdigest(),'single_line_validation':True,'cover_validation':bool(standard),'head_geometry_validation':bool(standard),'board_motion_interval':2.4 if standard else None,'listening_review':'not_performed','normal_speed_playback_review':'not_performed','full_decode':'passed','auxiliary_audio':'muted','media_used':[{'scene_start':scenes[i]['start'],'scene_end':scenes[i]['end'],'asset':scenes[i]['asset'],'reason':scenes[i].get('reason',''),'asset_in':scenes[i].get('asset_in',0)} for i in media]}
+    report={'source_to_final':mapping,'duration':total,'input_hashes':{name:hashlib.sha256(Path(path).read_bytes()).hexdigest() for name,path in [('source',src),('plan',a.plan),('captions',a.captions)]},'style_profile':profile or 'legacy','renderer_version':'1.6' if standard else 'legacy','raster_sha256':raster_hash.hexdigest(),'frame_count':frame_count,'font_sha256':hashlib.sha256(Path(a.font).read_bytes()).hexdigest(),'full_frame_presenter_seconds':round(sum(sc['end']-sc['start'] for sc in scenes if sc['template'] in ('opening','presenter')),3) if standard else None,'circle_seconds':round(sum(sc['end']-sc['start'] for sc in scenes if sc['template'] in ('path','amplifier','list','compare','media') and sc.get('show_presenter',False)),3) if standard else None,'single_line_validation':True,'cover_validation':bool(standard),'head_geometry_validation':bool(standard),'board_motion_interval':2.4 if standard else None,'listening_review':'not_performed','normal_speed_playback_review':'not_performed','full_decode':'passed','auxiliary_audio':'muted','media_used':[{'scene_start':scenes[i]['start'],'scene_end':scenes[i]['end'],'asset':scenes[i]['asset'],'reason':scenes[i].get('reason',''),'asset_in':scenes[i].get('asset_in',0)} for i in media]}
     out.with_suffix('.review.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report))
 if __name__=='__main__':main()

@@ -19,8 +19,8 @@ def audit_motion(video,plan):
             if not board:previous=None;continue
             frame=np.frombuffer(data,np.uint8).reshape(451,256).astype(np.int16)
             # Analyze actual knowledge content; summary/title/captions/rail do not count.
-            mask=np.zeros((451,256),bool);mask[121:297,12:244]=True
-            if scene['template'] in ('path','amplifier','list','compare','media') and scene.get('show_presenter',True):
+            mask=np.zeros((451,256),bool);mask[121:297 if scene.get('show_presenter',False) else 395,12:244]=True
+            if scene['template'] in ('path','amplifier','list','compare','media') and scene.get('show_presenter',False):
                 size=scene.get('presenter_size',184)
                 if scene.get('presenter_position')=='top':
                     x,y,w,h=scene['presenter_space'];size=min(size,int(w*512),int(h*902));cx=(x+w/2)*256;cy=(y+h/2)*451

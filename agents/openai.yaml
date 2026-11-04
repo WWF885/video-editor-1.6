@@ -1,7 +1,8 @@
 interface:
   display_name: video-editor-1.6
   short_description: 海军蓝奶油白柔金配色，清晰文字层级、完整头部圆窗与单行重点字幕
-  default_prompt: 使用 $video-editor-v1-6 剪辑我的视频：深海军蓝奶油白柔金配色，顶部段落概述24px、主标题44px、辅助说明20px；先运行scripts/run.py --check并报告版本与package_fingerprint；仅使用内置程序，失败停止；正式交付前必须通过scripts/finalize.py审核，禁止将候选成片当正式结果；先给3个候选标题供我选择或采用我自定标题；封面爆款标题仅第0帧展示，第2帧立即消失，首帧原视频封面标题恰好两行每行最多4字、无标点、整块文字水平及垂直居中超大艺术字；圆窗无留白，head_box必须覆盖全部头发与脸及下巴并通过几何检查；每段换模板，禁止循环描边画圈，采用节点轻弹、箭头流动、关键词放大等画板2.4秒内容动效且连续静止不得超过3秒，通过5fps内容区审查；左上段落概述、右上无序号；默认使用wenfeng-standard-v1和scripts/run.py，先理解口播和辅助素材，再选择固定模板并填写实际时间，不自行改写样式，每次只显示一行字幕，并突出关键词。
+  default_prompt: 使用 $video-editor-v1-6 剪辑我的视频：深海军蓝奶油白柔金配色，顶部段落概述24px、主标题44px、辅助说明20px；内容逻辑优先，先建立问题到方法的解释链，默认show_presenter=false、图解为主，真人仅开头结尾辅助；先运行scripts/run.py
+    --check并报告版本与package_fingerprint；仅使用内置程序，失败停止；正式交付前必须通过scripts/finalize.py审核，禁止将候选成片当正式结果；先给3个候选标题供我选择或采用我自定标题；封面爆款标题仅第0帧展示，第2帧立即消失，首帧原视频封面标题恰好两行每行最多4字、无标点、整块文字水平及垂直居中超大艺术字；圆窗无留白，head_box必须覆盖全部头发与脸及下巴并通过几何检查；每段换模板，禁止循环描边画圈，采用节点轻弹、箭头流动、关键词放大等画板2.4秒内容动效且连续静止不得超过3秒，通过5fps内容区审查；左上段落概述、右上无序号；默认使用wenfeng-standard-v1和scripts/run.py，先理解口播和辅助素材，再选择固定模板并填写实际时间，不自行改写样式，每次只显示一行字幕，并突出关键词。
   icon_small: assets/icon.svg
   icon_large: assets/icon.svg
 policy:

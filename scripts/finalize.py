@@ -2,13 +2,14 @@
 import argparse,hashlib,json
 from pathlib import Path
 from run import check_environment,VERSION
-CHECKS=('original_opening','approved_title_and_keywords','paragraph_scene_changes','summary_no_corner_number','single_line_captions','hair_and_face_visible','circle_filled_and_positioned','no_content_occlusion','caption_timing_checked','cover_two_lines_four_chars','board_static_under_three_seconds')
+CHECKS=('original_opening','approved_title_and_keywords','paragraph_scene_changes','summary_no_corner_number','single_line_captions','hair_and_face_visible','circle_filled_and_positioned','no_content_occlusion','caption_timing_checked','cover_two_lines_four_chars','board_static_under_three_seconds','logic_is_clear','presenter_is_secondary')
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def validate(video,review,report,environment):
     if report.get('renderer_version')!=VERSION or report.get('standard_version')!=VERSION:raise ValueError('Wrong renderer version')
     if report.get('full_decode')!='passed' or report.get('single_line_validation') is not True:raise ValueError('Technical checks incomplete')
     if report.get('board_static_audit',{}).get('status')!='passed':raise ValueError('Board static audit missing or failed')
     if report.get('cover_validation') is not True or report.get('head_geometry_validation') is not True or report.get('board_motion_interval',99)>3:raise ValueError('New cover/head/motion technical checks incomplete')
+    if not review.get('logic_evidence'):raise ValueError('Record scene logic and actual speech alignment findings')
     if not review.get('head_evidence'):raise ValueError('Record circle samples at scene start/middle/end and motion extremes')
     if report.get('output_sha256')!=sha(video):raise ValueError('Video differs from rendered candidate')
     if report.get('package_fingerprint')!=environment['package_fingerprint']:raise ValueError('Package differs from rendering environment')

@@ -14,10 +14,13 @@
     "no_content_occlusion": false,
     "caption_timing_checked": false,
     "cover_two_lines_four_chars": false,
-    "board_static_under_three_seconds": false
+    "board_static_under_three_seconds": false,
+    "logic_is_clear": false,
+    "presenter_is_secondary": false
   },
   "shoulders": "pending",
   "source_limitation": "",
   "listening_review": "not_performed",
-  "head_evidence": []
+  "head_evidence": [],
+  "logic_evidence": []
 }

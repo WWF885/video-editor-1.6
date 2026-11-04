@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-WIDTH, HEIGHT, FPS, DURATION = 512, 902, 30, 16
+WIDTH, HEIGHT, FPS, DURATION = 512, 902, 30, 18
 
 def prepare(output_dir):
     from PIL import Image, ImageDraw, ImageFont
@@ -20,7 +20,7 @@ def prepare(output_dir):
         draw.text(xy, s, font=fonts[n], fill=fill, anchor="mm")
     # The obvious geometric silhouette is a framing target, not a generated identity.
     command = ["ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "512x902", "-r", "30", "-i", "-",
-               "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "16", "-c:v", "libx264", "-crf", "18", "-preset", "fast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", str(output_dir / "demo-source.mp4")]
+               "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", str(DURATION), "-c:v", "libx264", "-crf", "18", "-preset", "fast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", str(output_dir / "demo-source.mp4")]
     process = subprocess.Popen(command, stdin=subprocess.PIPE)
     try:
         for frame_number in range(FPS * DURATION):

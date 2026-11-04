@@ -35,14 +35,19 @@
       "nodes": [
         {
           "at": 2,
-          "text": "清楚表达"
+          "text": "先理解"
         },
         {
           "at": 2.5,
-          "text": "有效连接"
+          "text": "讲清楚"
+        },
+        {
+          "at": 3,
+          "text": "再行动"
         }
       ],
-      "takeaway": "一个画面，一个重点"
+      "takeaway": "让观众跟上你的思路",
+      "show_presenter": false
     },
     {
       "start": 4,
@@ -71,7 +76,8 @@
           "text": "信用"
         }
       ],
-      "center": "个人IP"
+      "center": "个人IP",
+      "show_presenter": true
     },
     {
       "start": 8,
@@ -91,7 +97,8 @@
           "at": 9,
           "text": "最后统一呈现"
         }
-      ]
+      ],
+      "show_presenter": true
     },
     {
       "start": 10,
@@ -133,7 +140,8 @@
             }
           ]
         }
-      ]
+      ],
+      "show_presenter": true
     },
     {
       "start": 12,
@@ -160,6 +168,16 @@
       "template": "presenter",
       "title": "回到真人主画面",
       "subtitle": "演示取景与清晰表达"
+    },
+    {
+      "start": 16,
+      "end": 18,
+      "template": "definition",
+      "title": "解释一个核心概念",
+      "lead": "个人IP",
+      "body": "价值放大器",
+      "body_at": 16.4,
+      "show_presenter": false
     }
   ],
   "opening_title": {
@@ -214,12 +232,17 @@
       "start": 14,
       "end": 16,
       "summary": "总结收束"
+    },
+    {
+      "start": 16,
+      "end": 18,
+      "summary": "概念解释"
     }
   ],
   "cuts": [
     {
       "in": 0,
-      "out": 16
+      "out": 18
     }
   ]
 }
