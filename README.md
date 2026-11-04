@@ -41,7 +41,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 
 未打包用户真人原始视频、私人项目、账号信息或参考博主素材。技术检查不代替字幕核对和听审。字体许可见assets/fonts/OFL.txt。
 
-技能调用名：`video-editor-v1-6`。英文技能及项目命名统一使用 `wwf` 前缀。
+技能调用名：`video-editor-v1-6`。
 
 ## 1.4 默认剪辑规则
 
@@ -107,3 +107,5 @@ python scripts/finalize.py --video work/final.mp4 --review work/visual-review.js
 - 交付审核新增两行短封面、头部证据和画板静止时长检查，未通过只能交付明确标注的草稿。
 
 安装完整替换旧版、停用旧技能，调用 `video-editor-v1-6`，先执行 `python scripts/run.py --check`。旧计划不能仅改版本号，需补两行标题、head_box、cuts并重新分镜。双方使用同一固定提交并比较package_fingerprint。自测涵盖40个栅格点、8秒合成片、完整头部几何检查和静止画板负例；合成测试不等于真实素材听审。
+
+项目名称与显示名称现统一为video-editor-1.6；调用名称video-editor-v1-6。侧倾头部支持head_outline（8–64个真实检查的完整头部轮廓点），用于替代保守矩形空角检查，仍需覆盖head_box极值并留安全余量。不得只标五官或捏造轮廓。已用真人原片生成23.98秒新版小样；仅作视觉预览，未做正常速度听审。

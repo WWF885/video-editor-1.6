@@ -63,10 +63,10 @@ def validate_presenter_geometry(config, source_size):
     sw,sh=source_size;crop=config['crop'];head=config['head_box']
     l,t,r,b=[v*(sw if i%2==0 else sh) for i,v in enumerate(crop)]
     cx,cy=(l+r)/2,(t+b)/2;radius=min(r-l,b-t)*.45
-    for x in (head[0]*sw,head[2]*sw):
-        for y in (head[1]*sh,head[3]*sh):
-            if math.hypot(x-cx,y-cy)>radius:
-                raise ValueError('Full hair/face head_box is clipped by the circle; widen or reposition source crop')
+    points=config.get('head_outline') or [[x,y] for x in (head[0],head[2]) for y in (head[1],head[3])]
+    for nx,ny in points:
+        if math.hypot(nx*sw-cx,ny*sh-cy)>radius:
+            raise ValueError('Full hair/face head_box is clipped by the circle; widen or reposition source crop')
 
 
 def validate_standard_plan(plan, cues, fontpath):
@@ -96,12 +96,19 @@ def validate_standard_plan(plan, cues, fontpath):
                 raise ValueError(f'{label} item is outside scene')
             text(item['text'], size, limit, label, True)
     def presenter(config):
-        if not isinstance(config, dict) or set(config) - {'crop', 'framing_confirmed', 'head_box'}:
+        if not isinstance(config, dict) or set(config) - {'crop', 'framing_confirmed', 'head_box', 'head_outline'}:
             raise ValueError('Standard presenter allows crop, head_box and framing_confirmed')
         if 'crop' in config:
             _crop(config['crop'], 'presenter.crop')
         if 'head_box' in config:
             _crop(config['head_box'], 'presenter.head_box')
+        if 'head_outline' in config:
+            points=config['head_outline']
+            if not isinstance(points,list) or not 8<=len(points)<=64 or any(not isinstance(v,list) or len(v)!=2 or any(not 0<=_number(c,'head_outline')<=1 for c in v) for v in points):
+                raise ValueError('head_outline requires 8 to 64 inspected normalized contour points')
+            if 'head_box' not in config:raise ValueError('head_outline also needs its full-head bounding box')
+            bounds=[min(v[0] for v in points),min(v[1] for v in points),max(v[0] for v in points),max(v[1] for v in points)]
+            if any(abs(a-b)>.002 for a,b in zip(bounds,config['head_box'])):raise ValueError('head_outline must cover the complete head_box extrema')
         if 'framing_confirmed' in config and not isinstance(config['framing_confirmed'],bool):
             raise ValueError('framing_confirmed must be boolean after visual inspection')
     if not plan.get('cuts') or plan['cuts'][0].get('in')!=0:raise ValueError('Cover must use original source frame zero; first cut must start at zero')

@@ -3,7 +3,7 @@
   "version": "1.6",
   "files": {
     "Dockerfile": "8e6ec086810eff73a4282eab74bff589b773aab9c47402b535eb817c10803cf2",
-    "SKILL.md": "9e91e1b3d60a72b3cfa113757ba949c1d6784e19f34e05aa4072e7ea779b59ab",
+    "SKILL.md": "ebecf941789f8369377fdc945bab41d4a45e7d2006d0177a467dc396638075e8",
     "agents/openai.yaml": "6ea39e2b9d8547858f3c5bd25be6a2fd2026d41a65d330c4bacc3aa86aadac93",
     "assets/demo-captions.json": "a78270eda2d7b8e80a596e7cabb8c697ac974ff994f12ea222365295491acccb",
     "assets/demo-insert.png": "f467bc1820919f292fe42ffd933ee3c08ec29a57d76d8db1f747e4e6ea2bc5b9",
@@ -18,7 +18,7 @@
     "references/material-direction.md": "53d373bd2901dfb593a9991ce2af3348654ad834dbea4bb3d8484023452e2f21",
     "references/plan-format.md": "2aec3c23159bf05d43b41be87c7cbe84ae81a61aee2fae97843c56a85230f3c1",
     "references/premium-style.md": "3a161e413ffebf8b1c3ca09c2f95aa6e20d026ac3f3bc24bcb1133e4e9e9685b",
-    "references/standard-mode.md": "fbf3b3be6a53902802a98bbf2dee311fbe183b5fec7932aff635285214026328",
+    "references/standard-mode.md": "3772d8a00e1baa83d941c9d089718a6607c2759954a2814a8773705185167f89",
     "references/style-catalog.md": "376d2f9782577371d9f7f3b8c1e9917d6478e10b4a1c71208d2e8e14aec87768",
     "requirements.txt": "a3423d82decbeeefbd72a37981aaaf8eb0f8b4def9af1babfb0d7cfe3c156798",
     "scripts/audit_motion.py": "a724ffef394e95b2663f12f0d5f8e5d8c6c481ab673f2c23fc491b5479aabe3e",
@@ -27,7 +27,7 @@
     "scripts/finalize.py": "a107706bca6d228dbcef68a41f4e67472575a17ad018a5e6abe62feb229b0663",
     "scripts/render.py": "ac0b019db82fba5be4f7f3d724e48614ca8f247b083200eec230dfb9f4bcee44",
     "scripts/run.py": "19a2ed843d27bfba27c0b54a771998ed02afb739b5a2085f6f4d28fd4427d6cb",
-    "scripts/standard_style.py": "777d8fa3c71ee129f36c72e3eb0c9fe00668b7cabd7d0767784274d95ef027c5",
+    "scripts/standard_style.py": "a384dedce688014cfbe0c0e8dad5af6c1835fec35380ff3de5db57be104da478",
     "scripts/verify_standard.py": "c537f0431eeaa0eee074889773ed696fab7e6545243a55329045f14d5b971cd4",
     "scripts/visuals.py": "23a49fa636f42ba3dbf797ca46ebe35836ce06635f05f4c0c2c5b328afdf968e"
   }
