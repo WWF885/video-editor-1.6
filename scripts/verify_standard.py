@@ -16,6 +16,9 @@ def samples():
             sc=dict(scene);sc['_presenter_crop_base']=plan['presenter']['crop']
             image=style.render(frame,t,i,sc,media_image=media if sc['template']=='media' else None)
             rows.append({'time':t,'sha256':hashlib.sha256(image.tobytes()).hexdigest()})
+    # Playback must lose the cover immediately, including its dark backing.
+    second=style.render(frame,1/30,0,plan['scenes'][0])
+    if second.crop((0,0,512,780)).tobytes()!=frame.crop((0,0,512,780)).tobytes():raise AssertionError('Cover title persists beyond frame zero')
     # Content-only standard mode must reject visual overrides.
     broken=dict(plan,theme='pink')
     try:validate_standard_plan(broken,cues,font)

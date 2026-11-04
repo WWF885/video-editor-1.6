@@ -402,6 +402,9 @@ class StandardStyle:
         ink, accent, muted = (INK,BLUE,'#758599') if light else (WHITE,CYAN,'#8FA7BC')
         summary=self.plan['paragraphs'][scene_index]['summary']
         title=scene.get('title','');subtitle=scene.get('subtitle','')
+        if template=='opening' and t>=.5/FPS:
+            # Only encoded frame zero is the cover. Never hold its title during playback.
+            return self._caption(original_frame.convert('RGBA'),t).convert('RGB')
         if template=='opening':
             # Keep the original first frame intact beneath the header/title overlays.
             veil=Image.new('RGBA',(W,H));vd=ImageDraw.Draw(veil)
