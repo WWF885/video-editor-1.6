@@ -354,25 +354,44 @@ class StandardStyle:
                 boxes=[((x+a*w)*W,(y+b*h)*H,(x+c*w)*W,(y+e*h)*H)]
         if not boxes:return
         left,top,right,bottom=boxes[beat%len(boxes)]
-        # Trace the active knowledge card. The trace restarts every 2.4 seconds.
-        q=smooth(min(1,phase));perimeter=2*(right-left+bottom-top);remain=perimeter*q
-        layer=Image.new('RGBA',(W,H));d=ImageDraw.Draw(layer)
-        corners=[(left,top),(right,top),(right,bottom),(left,bottom),(left,top)]
-        for start,end in zip(corners,corners[1:]):
-            length=math.dist(start,end);part=min(length,remain)
-            if part>0:d.line((start,(start[0]+(end[0]-start[0])*part/length,start[1]+(end[1]-start[1])*part/length)),fill=accent,width=3)
-            remain-=part
-        # Re-trace existing causal connections; never reveal unheard nodes.
-        if phase<1:
+        # One brief content-directed emphasis per beat; no perimeter tracing.
+        # Rotate motion language by graphic type rather than drawing loops.
+        if phase>=1.35:return
+        wave=math.sin(math.pi*min(1,phase/1.35))
+        left,top,right,bottom=map(round,(left,top,right,bottom))
+        region=im.crop((left,top,right,bottom))
+        if template=='media':
+            zoom=1+.045*wave
+            pic=region.resize((round(region.width*zoom),round(region.height*zoom)),Image.Resampling.LANCZOS)
+            ox=(pic.width-region.width)//2;oy=(pic.height-region.height)//2
+            im.paste(pic.crop((ox,oy,ox+region.width,oy+region.height)),(left,top))
+        elif template=='list':
+            # Soft fill briefly selects the spoken checklist row; no border.
+            layer=Image.new('RGBA',(W,H));d=ImageDraw.Draw(layer)
+            rgb=tuple(bytes.fromhex(accent[1:]));d.rounded_rectangle((left,top,right,bottom),radius=18,fill=(*rgb,round(42*wave)))
+            im.alpha_composite(layer)
+            zoom=1+.025*wave
+            pic=im.crop((left,top,right,bottom)).resize((round((right-left)*zoom),round((bottom-top)*zoom)),Image.Resampling.LANCZOS)
+            im.paste(pic,(round((left+right-pic.width)/2),round((top+bottom-pic.height)/2)))
+        else:
+            # Node cards lift gently; a conclusion gets a brief word-size emphasis.
+            zoom=1+(.055 if template=='statement' else .045)*wave
+            pic=region.resize((round(region.width*zoom),round(region.height*zoom)),Image.Resampling.LANCZOS)
+            lift=round((5 if template in ('path','amplifier','compare') else 0)*wave)
+            im.paste(pic,(round((left+right-pic.width)/2),round((top+bottom-pic.height)/2)-lift))
+        if template in ('path','amplifier'):
             connections=[]
             if template=='path' and all(t>=v['at'] for v in scene['nodes']):connections=[((235,360),(275,360))]
             if template=='amplifier' and scene.get('traits'):
                 connections=[((215,290+j*102),(326,392)) for j,v in enumerate(scene['traits']) if t>=v['at']]
             if connections:
-                start,end=connections[beat%len(connections)];q=smooth(phase)
-                px=start[0]+(end[0]-start[0])*q;py=start[1]+(end[1]-start[1])*q
-                d.ellipse((px-4,py-4,px+4,py+4),fill=accent)
-        im.alpha_composite(layer)
+                start,end=connections[beat%len(connections)];q=min(1,phase/1.35)
+                vx,vy=end[0]-start[0],end[1]-start[1];length=math.hypot(vx,vy)
+                px,py=start[0]+vx*q,start[1]+vy*q
+                tail=max(0,q-.23);d=ImageDraw.Draw(im)
+                d.line((start[0]+vx*tail,start[1]+vy*tail,px,py),fill=accent,width=6)
+                dx,dy=vx/length,vy/length
+                d.polygon([(px+4*dx,py+4*dy),(px-7*dx+4*dy,py-7*dy-4*dx),(px-7*dx-4*dy,py-7*dy+4*dx)],fill=accent)
 
     def render(self, original_frame, t, scene_index, scene, *, media_image=None):
         if original_frame.size != (W,H):
