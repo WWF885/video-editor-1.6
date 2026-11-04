@@ -3,22 +3,22 @@
   "version": "1.6",
   "files": {
     "Dockerfile": "8e6ec086810eff73a4282eab74bff589b773aab9c47402b535eb817c10803cf2",
-    "SKILL.md": "c30f97bb0213aaf72a091ab81d14e66aef0d0fedf65ce86a96c53478d9fe01df",
-    "agents/openai.yaml": "cde126bb4ebeb0b1257814ddc1c4a9af2119e0a7c5bc9afd70aeb0f571a4a7fb",
+    "SKILL.md": "68a64b149624b9932d3d7562a3a2447603a03f9bd333e677d1a51e002f3cc292",
+    "agents/openai.yaml": "c50e1a0ae7f49d19980ee5b9c5730d12ea1cac67c1700a40d2f3a086cf924cf7",
     "assets/demo-captions.json": "a78270eda2d7b8e80a596e7cabb8c697ac974ff994f12ea222365295491acccb",
     "assets/demo-insert.png": "f467bc1820919f292fe42ffd933ee3c08ec29a57d76d8db1f747e4e6ea2bc5b9",
     "assets/fonts/NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
     "assets/fonts/OFL.txt": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
     "assets/icon.svg": "49315dda7125ec5fc77ef5f2b96126d8b2121c6e72944b4702972e90f321d3ee",
-    "assets/reference-raster.json": "f383c33afaf85020f9fff9bb5d6a4adecc916639510334228387191f7d3fdc14",
+    "assets/reference-raster.json": "59cdedd951a99dd808ef1acb288b949914fcd6f79b273b1a52a4181abc7d88fe",
     "assets/reference-source.png": "9813685b5b41d459c15efd29aaf8824809c40e1b18172d9b9f7541bed21342b8",
     "assets/standard-demo.json": "0f96feb56e854426a74a99adb0a54b26035f41269f8721268811a138a55999da",
     "assets/visual-review-template.json": "0b11d1098823b3c38184da0a519b8b8e3a87adf7cb942d0793f4dd5d83de81c9",
     "references/caption-rules.md": "b27c265746716fe95b5a1be82fc270b2533437f2f922bcd42ec74bd470907ae9",
     "references/material-direction.md": "53d373bd2901dfb593a9991ce2af3348654ad834dbea4bb3d8484023452e2f21",
     "references/plan-format.md": "2aec3c23159bf05d43b41be87c7cbe84ae81a61aee2fae97843c56a85230f3c1",
-    "references/premium-style.md": "462664e3f272cefb67b7116091d72c75f95281d889aeb2e6288e78e47d2b1ddc",
-    "references/standard-mode.md": "a4d731275ac18c9eabcc41ad2befdf9e544e75752afd858fcad231156e03b2d2",
+    "references/premium-style.md": "da6f7d8bcae1eb460e317f6313ba3661945e11538321a68b078dad8d2806dc38",
+    "references/standard-mode.md": "2456b85032db37c7cb01d5b2f0e9f5e32f37902718b2464dd7142b032b531a94",
     "references/style-catalog.md": "376d2f9782577371d9f7f3b8c1e9917d6478e10b4a1c71208d2e8e14aec87768",
     "requirements.txt": "a3423d82decbeeefbd72a37981aaaf8eb0f8b4def9af1babfb0d7cfe3c156798",
     "scripts/audit_motion.py": "a724ffef394e95b2663f12f0d5f8e5d8c6c481ab673f2c23fc491b5479aabe3e",
@@ -27,8 +27,8 @@
     "scripts/finalize.py": "a107706bca6d228dbcef68a41f4e67472575a17ad018a5e6abe62feb229b0663",
     "scripts/render.py": "ac0b019db82fba5be4f7f3d724e48614ca8f247b083200eec230dfb9f4bcee44",
     "scripts/run.py": "19a2ed843d27bfba27c0b54a771998ed02afb739b5a2085f6f4d28fd4427d6cb",
-    "scripts/standard_style.py": "576e34dbd883a5ed43795897a8be5f7bb712860d4fb94460ecdfdb0edaac3f19",
+    "scripts/standard_style.py": "23e406cf0d2e33fcf1f984825be719743e8c21e7bfdb854b12b42041e6f597dd",
     "scripts/verify_standard.py": "93049742692c2b1b55a3497c9be7424c1e636d69ae7ac7daf2a6dbdb8b94fbc2",
-    "scripts/visuals.py": "23a49fa636f42ba3dbf797ca46ebe35836ce06635f05f4c0c2c5b328afdf968e"
+    "scripts/visuals.py": "e15cf0fa38f9f5f191354ff4138d886af409eb11b776aa98c595d600295c272e"
   }
 }

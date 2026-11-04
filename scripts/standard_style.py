@@ -13,7 +13,7 @@ from visuals import circular_presenter, frosted_background
 
 PROFILE = 'wenfeng-standard-v1'
 W, H, FPS = 512, 902, 30
-NAVY, INK, WHITE, CYAN, BLUE = '#0B1526', '#15263D', '#F7F9FC', '#58E5D0', '#2671D9'
+NAVY, INK, WHITE, CYAN, BLUE = '#1C2541', '#2A2D34', '#F7F2E5', '#DAC18A', '#936F31'
 TRANSITION_SECONDS = .24
 TEMPLATES = ('opening', 'presenter', 'path', 'statement', 'amplifier', 'compare', 'list', 'media')
 TOP_FIELDS = {'style_profile', 'standard_version', 'width', 'height', 'fps', 'cuts', 'scenes', 'presenter', 'duration', 'opening_title', 'paragraphs'}
@@ -131,7 +131,7 @@ def validate_standard_plan(plan, cues, fontpath):
         if not isinstance(paragraph,dict) or set(paragraph)!={'start','end','summary'}:raise ValueError('Paragraphs require exactly start,end,summary')
         pa,pb=_number(paragraph['start'],'paragraph.start'),_number(paragraph['end'],'paragraph.end')
         if abs(pa-p_end)>1e-6 or pb<=pa:raise ValueError('Paragraphs must be contiguous from zero')
-        text(paragraph['summary'],18,360,'paragraph summary',True);p_end=pb
+        text(paragraph['summary'],24,420,'paragraph summary',True);p_end=pb
     scenes = plan.get('scenes')
     if not isinstance(scenes, list) or not scenes:
         raise ValueError('Standard mode requires explicit contiguous scenes')
@@ -157,7 +157,7 @@ def validate_standard_plan(plan, cues, fontpath):
         if index==0:
             if scene.get('title')!=title_value:raise ValueError('First scene title must match the approved opening title')
             opening_title_lines(opening, font(96))
-        else:text(scene.get('title', ''),38,440,'title')
+        else:text(scene.get('title', ''),44,440,'title')
         text(scene.get('subtitle', ''), 19, 440, 'subtitle')
         presenter(scene.get('presenter', {}))
         if not isinstance(scene.get('show_presenter', True), bool):
@@ -264,10 +264,14 @@ class StandardStyle:
         return ImageFont.truetype(self.fontpath, size)
 
     def text(self, draw, xy, value, size=25, color=WHITE, anchor='mm'):
-        draw.text(xy, str(value), font=self.font(size), fill=color, anchor=anchor)
+        draw.text(xy, str(value), font=self.font(size), fill=color, anchor=anchor,stroke_width=1 if size>=34 else 0,stroke_fill=color)
 
-    def panel(self, im, box, fill, radius=18):
-        ImageDraw.Draw(im).rounded_rectangle(box, radius=radius, fill=fill)
+    def panel(self, im, box, fill, radius=12):
+        fill={'#19364A':'#303A56','#173247':'#2E3852','#1D4A51':'#3D4051','#DBECFF':'#303A56','#FFFFFF':'#FFFCF6'}.get(fill,fill)
+        x1,y1,x2,y2=box;shadow=Image.new('RGBA',im.size);d=ImageDraw.Draw(shadow)
+        d.rounded_rectangle((x1,y1+5,x2,y2+5),radius=12,fill=(0,0,0,25))
+        im.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(8)))
+        ImageDraw.Draw(im).rounded_rectangle(box,radius=12,fill=fill)
 
     def arrow(self, draw, a, b, progress, color):
         p = smooth(progress)
@@ -300,7 +304,7 @@ class StandardStyle:
         value, keys = cue['text'], cue.get('highlights', [])
         width = self.font(26).getlength(value); x = (W-width)/2; y = 837
         layer = Image.new('RGBA', (W,H)); draw = ImageDraw.Draw(layer)
-        draw.rounded_rectangle((x-14,y-25,x+width+14,y+25), radius=12, fill=(7,18,32,240))
+        draw.rounded_rectangle((x-14,y-25,x+width+14,y+25), radius=12, fill=(17,23,39,242))
         pattern = '(' + '|'.join(re.escape(k) for k in sorted(keys, key=len, reverse=True)) + ')' if keys else None
         for span in re.split(pattern, value) if pattern else [value]:
             if not span:
@@ -326,7 +330,7 @@ class StandardStyle:
             spans=re.split('('+'|'.join(re.escape(k) for k in keywords)+')',line)
             for span in spans:
                 if not span:continue
-                color='#FFE36D' if span in keywords else '#F7FFFD'
+                color='#E0C58D' if span in keywords else '#F7FFFD'
                 d.text((x,yy),span,font=font,anchor='lm',fill=color,stroke_width=5,stroke_fill='#061421')
                 d.text((x+.7,yy),span,font=font,anchor='lm',fill=color,stroke_width=1,stroke_fill=color)
                 x+=font.getlength(span)
@@ -399,7 +403,7 @@ class StandardStyle:
         template = scene['template']; u = max(0,t-scene['start']); p = smooth(u/.42)
         light = template in ('statement','compare','media') or (template == 'path' and scene_index % 2 == 1)
         im = original_frame.convert('RGBA') if template=='opening' else self.backgrounds[light].copy().convert('RGBA'); d=ImageDraw.Draw(im)
-        ink, accent, muted = (INK,BLUE,'#758599') if light else (WHITE,CYAN,'#8FA7BC')
+        ink, accent, muted = (INK,BLUE,'#817C71') if light else (WHITE,CYAN,'#BBB9B2')
         summary=self.plan['paragraphs'][scene_index]['summary']
         title=scene.get('title','');subtitle=scene.get('subtitle','')
         if template=='opening' and t>=.5/FPS:
@@ -412,10 +416,10 @@ class StandardStyle:
             im=Image.alpha_composite(im,veil);d=ImageDraw.Draw(im)
             self.art_title(im,title)
         else:
-            d.line((32,103,480,103),fill='#CED9E5' if light else '#294052',width=1)
-            self.text(d,(32,63),summary,18,muted,'lm')
-            self.text(d,(256,157+round(12*(1-p))),title,38,accent)
-            if subtitle:self.text(d,(256,215),subtitle,19,ink)
+            d.rounded_rectangle((32,47,36,76),radius=2,fill=accent)
+            self.text(d,(50,62),summary,24,accent,'lm')
+            self.text(d,(32,151+round(9*(1-p))),title,44,ink,'lm')
+            if subtitle:self.text(d,(34,209),subtitle,20,muted,'lm')
         if template=='presenter':
             # Aspect-preserving original source, no artificial subject enlargement.
             thumb=original_frame.resize((324,571),Image.Resampling.LANCZOS)
@@ -435,10 +439,10 @@ class StandardStyle:
                 self.text(d,(38,510),scene['takeaway'],26,ink,'lm')
             self.circle(im,original_frame,scene)
         elif template=='statement':
-            self.text(d,(256,291),scene['before'],44,'#95A1B0')
-            width=self.font(44).getlength(scene['before']);d.line((256-width/2,291,256+width/2,291),fill='#B8C3CF',width=2)
+            self.text(d,(256,291),scene['before'],36,'#8E8B84')
+            width=self.font(36).getlength(scene['before']);d.line((256-width/2,291,256+width/2,291),fill='#C9C3B8',width=2)
             self.arrow(d,(256,348),(256,409),u/.42,BLUE)
-            self.text(d,(256,488+round(18*(1-p))),scene['after'],68,BLUE)
+            self.text(d,(256,488+round(18*(1-p))),scene['after'],86,BLUE)
         elif template=='amplifier':
             if scene.get('metric'):
                 self.text(d,(256,345),scene['metric'],96,accent)
@@ -489,14 +493,14 @@ class StandardStyle:
         if scene_index and u<TRANSITION_SECONDS:
             q=u/TRANSITION_SECONDS;layer=Image.new('RGBA',(W,H));ld=ImageDraw.Draw(layer)
             if scene_index%3==0:
-                x=round(W*q);ld.rectangle((x,0,W,H),fill=(88,229,208,round(110*(1-q))))
+                x=round(W*q);ld.rectangle((x,0,W,H),fill=(210,183,129,round(35*(1-q))))
             elif scene_index%3==1:
-                y=round(H*q);ld.rectangle((0,y,W,min(H,y+140)),fill=(38,113,217,round(145*(1-q))))
+                y=round(H*q);ld.rectangle((0,y,W,min(H,y+140)),fill=(229,222,207,round(42*(1-q))))
             else:
-                ld.rectangle((0,0,W,H),fill=(240,248,255,round(65*(1-q))))
+                ld.rectangle((0,0,W,H),fill=(240,237,230,round(35*(1-q))))
             im=Image.alpha_composite(im,layer)
         # Caption is last so transitions never interrupt a speech cue.
         if template!='opening':im=self._caption(im,t)
         if template=='opening':return im.convert('RGB')
-        d=ImageDraw.Draw(im);d.rectangle((32,871,480,873),fill='#344B5A');d.rectangle((32,871,32+448*min(1,max(0,t/self.duration)),873),fill=accent)
+        d=ImageDraw.Draw(im);d.rectangle((32,871,480,872),fill='#666158');d.rectangle((32,871,32+448*min(1,max(0,t/self.duration)),872),fill=accent)
         return im.convert('RGB')
