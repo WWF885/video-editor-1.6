@@ -11,6 +11,7 @@ def validate(video,review,report,environment):
     if report.get('cover_validation') is not True or report.get('head_geometry_validation') is not True or report.get('board_motion_interval',99)>3:raise ValueError('New cover/head/motion technical checks incomplete')
     if not review.get('logic_evidence'):raise ValueError('Record scene logic and actual speech alignment findings')
     if not review.get('head_evidence'):raise ValueError('Record circle samples at scene start/middle/end and motion extremes')
+    if report.get('presenter_policy')!='always_small_after_cover' or report.get('small_presenter_seconds',0)<report.get('duration',0)-1/30-.02:raise ValueError('Small presenter does not cover all playback frames')
     if report.get('output_sha256')!=sha(video):raise ValueError('Video differs from rendered candidate')
     if report.get('package_fingerprint')!=environment['package_fingerprint']:raise ValueError('Package differs from rendering environment')
     if review.get('video_sha256')!=sha(video) or review.get('report_sha256')!=sha(video.with_suffix('.review.json')):raise ValueError('Visual review is not bound to this video and report')

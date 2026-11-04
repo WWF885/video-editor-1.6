@@ -19,7 +19,7 @@ python scripts/run.py --demo --demo-dir work/demo
 python scripts/verify_standard.py
 ```
 
-标准演示无需真人素材或API密钥，使用明确标注的非真人、无口播校准画面；演示字幕仅为排版测试。所有45个画面采样点必须通过，环境不合格会停止，不偷偷换字体或模板。Dockerfile提供隔离构建方式，但没有发布不可变镜像；严格跨机器复现需使用同一构建镜像摘要及CPU架构。
+标准演示无需真人素材或API密钥，使用明确标注的非真人、无口播校准画面；演示字幕仅为排版测试。所有46个画面采样点必须通过，环境不合格会停止，不偷偷换字体或模板。Dockerfile提供隔离构建方式，但没有发布不可变镜像；严格跨机器复现需使用同一构建镜像摘要及CPU架构。
 
 ## 剪辑自己的素材
 
@@ -87,7 +87,7 @@ python scripts/run.py --version
 python scripts/run.py --check
 ```
 
-应输出standard_version=1.6，并且双方的package_fingerprint完全相同、45个画面校验点通过。安装缺文件、文件被修改或版本混用时会停止。README不参与运行包校验。
+应输出standard_version=1.6，并且双方的package_fingerprint完全相同、46个画面校验点通过。安装缺文件、文件被修改或版本混用时会停止。README不参与运行包校验。
 
 生成结果先为候选成片。复制assets/visual-review-template.json到项目目录，实际逐段抽帧核对标题、头脸、肩部、圆窗位置、遮挡、分镜和字幕时间；填写真实审核者、证据以及成片和review报告的SHA256。检查项默认未通过，禁止未检查直接勾选。然后执行：
 
@@ -106,7 +106,7 @@ python scripts/finalize.py --video work/final.mp4 --review work/visual-review.js
 - 实际导出后以5fps检查知识区域，排除头像、字幕、标题、进度条；连续近似静止超过3秒会停止。像素检查不证明语义正确，仍须抽帧复核。没有口播、素材或可靠字幕时不编造。
 - 交付审核新增两行短封面、头部证据和画板静止时长检查，未通过只能交付明确标注的草稿。
 
-安装完整替换旧版、停用旧技能，调用 `video-editor-v1-6`，先执行 `python scripts/run.py --check`。旧计划不能仅改版本号，需补两行标题、head_box、cuts并重新分镜。双方使用同一固定提交并比较package_fingerprint。自测涵盖45个栅格点、8秒合成片、完整头部几何检查和静止画板负例；合成测试不等于真实素材听审。
+安装完整替换旧版、停用旧技能，调用 `video-editor-v1-6`，先执行 `python scripts/run.py --check`。旧计划不能仅改版本号，需补两行标题、head_box、cuts并重新分镜。双方使用同一固定提交并比较package_fingerprint。自测涵盖46个栅格点、8秒合成片、完整头部几何检查和静止画板负例；合成测试不等于真实素材听审。
 
 项目名称与显示名称现统一为video-editor-1.6；调用名称video-editor-v1-6。侧倾头部支持head_outline（8–64个真实检查的完整头部轮廓点），用于替代保守矩形空角检查，仍需覆盖head_box极值并留安全余量。不得只标五官或捏造轮廓。已用真人原片生成23.98秒新版小样；仅作视觉预览，未做正常速度听审。
 
@@ -120,6 +120,10 @@ python scripts/finalize.py --video work/final.mp4 --review work/visual-review.js
 
 最新默认：内容逻辑优先。先建立问题→区别→原因/机制→例子/对比→行动要点的解释链，选择与真实语义匹配的图形；只在实际讲话时刻逐步出现。流程/因果用path，差异用compare，定义用definition（lead、body、body_at），并列问题用list，纠正观点用statement。禁止给并列属性加因果箭头。节点时间必须按展示顺序排列。
 
-知识画板默认show_presenter=false，真人仅在开头和结尾辅助，不强塞圆窗。纯内容path支持2–3个纵向大节点，清单、对比、关系图使用更大的可读区域。可见真人仍要求头发及完整脸部。自检包含45个采样点、定义模板及三节点布局；新计划必须匹配本完整安装包。
+知识画板默认show_presenter=true，每帧保留小人物窗，圆形与圆角方形按段落切换。纯内容path支持2–3个纵向大节点，清单、对比、关系图使用更大的可读区域。可见真人仍要求头发及完整脸部。自检包含46个采样点、定义模板及三节点布局；新计划必须匹配本完整安装包。
 
-新版74.58秒完整编排使用18个场景，真人约6.62秒；逻辑复核、原片时间戳与成片技术检查分别记录，正常速度听审未执行。视觉验收新增logic_is_clear、presenter_is_secondary和logic_evidence。不同内容不机械套本条分镜。
+新版74.58秒完整编排使用18个场景，首帧后全程显示128px小人物窗；逻辑复核、原片时间戳与成片技术检查分别记录，正常速度听审未执行。视觉验收新增logic_is_clear、presenter_is_secondary和logic_evidence。不同内容不机械套本条分镜。
+
+人物规则纠正（最新优先）：内容为主不等于隐藏人物。首帧为原视频封面且仅1帧；从第2帧到片尾，每帧都必须保留来自原视频、同步运动的120–156px小人物窗（默认128px，约占3%–5%画面），禁止关闭show_presenter。presenter_shape为circle或rounded_square，白边、轻阴影、头发和脸完整，按段落切换形状；下方水平居中，底边790px。大幅原视频和presenter大窗模板禁用。图解、概念解释、清单、对比页均叠加一次小窗，内容区在其上方。媒资与字幕不得被挡住。
+
+新版演示同时覆盖两种小窗和一帧封面，自检46个栅格采样点；关闭头像、超过156px或大人物模板会停止。交付还校验small_presenter_seconds覆盖整个播放区。两种形状均排除在画板静止检查之外；流程总结在相关节点讲完后呈现。

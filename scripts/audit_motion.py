@@ -19,13 +19,16 @@ def audit_motion(video,plan):
             if not board:previous=None;continue
             frame=np.frombuffer(data,np.uint8).reshape(451,256).astype(np.int16)
             # Analyze actual knowledge content; summary/title/captions/rail do not count.
-            mask=np.zeros((451,256),bool);mask[121:297 if scene.get('show_presenter',False) else 395,12:244]=True
-            if scene['template'] in ('path','amplifier','list','compare','media') and scene.get('show_presenter',False):
-                size=scene.get('presenter_size',184)
+            mask=np.zeros((451,256),bool);mask[121:395,12:244]=True
+            if scene['template']!='opening':
+                size=scene.get('presenter_size',128)
                 if scene.get('presenter_position')=='top':
                     x,y,w,h=scene['presenter_space'];size=min(size,int(w*512),int(h*902));cx=(x+w/2)*256;cy=(y+h/2)*451
                 else:cx=128;cy=(790-size/2)/2
-                yy,xx=np.ogrid[:451,:256];mask[(xx-cx)**2+(yy-cy)**2<((size/2+14)/2)**2]=False
+                yy,xx=np.ogrid[:451,:256]
+                if scene.get('presenter_shape','circle')=='rounded_square':
+                    mask[(np.abs(xx-cx)<(size/2+14)/2)&(np.abs(yy-cy)<(size/2+14)/2)]=False
+                else:mask[(xx-cx)**2+(yy-cy)**2<((size/2+14)/2)**2]=False
             if previous is not None:
                 changed=(np.abs(frame-previous)>12)&mask
                 if changed.sum()>=max(12,mask.sum()*.001):

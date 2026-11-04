@@ -22,10 +22,22 @@
   "scenes": [
     {
       "start": 0,
-      "end": 2,
+      "end": 0.03333333333333333,
       "template": "opening",
       "title": "标准模板效果演示",
       "subtitle": ""
+    },
+    {
+      "start": 0.03333333333333333,
+      "end": 2,
+      "template": "definition",
+      "title": "先说结论",
+      "lead": "内容为主",
+      "body": "人物常在",
+      "body_at": 0.03333333333333333,
+      "show_presenter": true,
+      "presenter_size": 128,
+      "presenter_shape": "circle"
     },
     {
       "start": 2,
@@ -47,7 +59,9 @@
         }
       ],
       "takeaway": "让观众跟上你的思路",
-      "show_presenter": false
+      "show_presenter": true,
+      "presenter_size": 128,
+      "presenter_shape": "rounded_square"
     },
     {
       "start": 4,
@@ -55,7 +69,10 @@
       "template": "statement",
       "title": "明确表达的方向",
       "before": "堆砌信息",
-      "after": "讲清价值"
+      "after": "讲清价值",
+      "show_presenter": true,
+      "presenter_size": 128,
+      "presenter_shape": "circle"
     },
     {
       "start": 6,
@@ -77,7 +94,9 @@
         }
       ],
       "center": "个人IP",
-      "show_presenter": true
+      "show_presenter": true,
+      "presenter_size": 128,
+      "presenter_shape": "rounded_square"
     },
     {
       "start": 8,
@@ -98,7 +117,9 @@
           "text": "最后统一呈现"
         }
       ],
-      "show_presenter": true
+      "show_presenter": true,
+      "presenter_size": 128,
+      "presenter_shape": "circle"
     },
     {
       "start": 10,
@@ -141,7 +162,9 @@
           ]
         }
       ],
-      "show_presenter": true
+      "show_presenter": true,
+      "presenter_size": 128,
+      "presenter_shape": "rounded_square"
     },
     {
       "start": 12,
@@ -149,7 +172,7 @@
       "template": "media",
       "title": "图片与重点区域",
       "asset": "demo-insert.png",
-      "show_presenter": false,
+      "show_presenter": true,
       "focus": [
         {
           "at": 12.5,
@@ -160,14 +183,30 @@
             0.65
           ]
         }
+      ],
+      "presenter_size": 128,
+      "presenter_shape": "circle",
+      "media_box": [
+        0.06,
+        0.27,
+        0.88,
+        0.4
       ]
     },
     {
       "start": 14,
       "end": 16,
-      "template": "presenter",
-      "title": "回到真人主画面",
-      "subtitle": "演示取景与清晰表达"
+      "template": "list",
+      "title": "内容与人物兼顾",
+      "items": [
+        {
+          "at": 14,
+          "text": "小窗陪伴讲解"
+        }
+      ],
+      "show_presenter": true,
+      "presenter_size": 128,
+      "presenter_shape": "rounded_square"
     },
     {
       "start": 16,
@@ -177,7 +216,9 @@
       "lead": "个人IP",
       "body": "价值放大器",
       "body_at": 16.4,
-      "show_presenter": false
+      "show_presenter": true,
+      "presenter_size": 128,
+      "presenter_shape": "circle"
     }
   ],
   "opening_title": {
@@ -195,8 +236,13 @@
   "paragraphs": [
     {
       "start": 0,
-      "end": 2,
+      "end": 0.03333333333333333,
       "summary": "明确主题"
+    },
+    {
+      "start": 0.03333333333333333,
+      "end": 2,
+      "summary": "封面后进入正文"
     },
     {
       "start": 2,

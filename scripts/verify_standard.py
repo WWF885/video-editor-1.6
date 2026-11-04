@@ -27,14 +27,14 @@ def samples():
     import copy
     cases=[]
     bad=copy.deepcopy(plan);bad['opening_title']['approved']=False;cases.append((bad,'Confirm opening_title'))
-    bad=copy.deepcopy(plan);bad['scenes'][0]['template']='presenter';cases.append((bad,'First scene'))
-    bad=copy.deepcopy(plan);bad['scenes'][2]['template']=bad['scenes'][1]['template'];cases.append((bad,'Adjacent paragraphs'))
+    bad=copy.deepcopy(plan);bad['scenes'][0]['template']='list';cases.append((bad,'First scene'))
+    bad=copy.deepcopy(plan);bad['scenes'][3]['template']=bad['scenes'][2]['template'];cases.append((bad,'Adjacent paragraphs'))
     bad=copy.deepcopy(plan);bad['paragraphs'][1]['summary']='';cases.append((bad,'paragraph summary'))
     bad=copy.deepcopy(plan);bad['presenter']['framing_confirmed']=False;cases.append((bad,'Circle needs'))
     bad=copy.deepcopy(plan);bad['opening_title']['text']='标准，模板效果演示';cases.append((bad,'punctuation'))
     bad=copy.deepcopy(plan);bad['opening_title']['lines']=['标准模板效果','演示'];cases.append((bad,'two explicit lines'))
     bad=copy.deepcopy(plan);bad['cuts'][0]['in']=1;cases.append((bad,'frame zero'))
-    bad=copy.deepcopy(plan);bad['scenes'][1]['nodes'][0]['at']=3.2;cases.append((bad,'chronological display order'))
+    bad=copy.deepcopy(plan);bad['scenes'][2]['nodes'][0]['at']=3.2;cases.append((bad,'chronological display order'))
     for bad,expected in cases:
         try:validate_standard_plan(bad,cues,font)
         except ValueError as error:

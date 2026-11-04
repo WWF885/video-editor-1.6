@@ -9,15 +9,15 @@ import re
 import unicodedata
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from visuals import circular_presenter, frosted_background
+from visuals import circular_presenter, rounded_square_presenter, frosted_background
 
 PROFILE = 'wenfeng-standard-v1'
 W, H, FPS = 512, 902, 30
 NAVY, INK, WHITE, CYAN, BLUE = '#1C2541', '#2A2D34', '#F7F2E5', '#DAC18A', '#936F31'
 TRANSITION_SECONDS = .24
-TEMPLATES = ('opening', 'presenter', 'path', 'statement', 'amplifier', 'compare', 'list', 'media', 'definition')
+TEMPLATES = ('opening', 'path', 'statement', 'amplifier', 'compare', 'list', 'media', 'definition')
 TOP_FIELDS = {'style_profile', 'standard_version', 'width', 'height', 'fps', 'cuts', 'scenes', 'presenter', 'duration', 'opening_title', 'paragraphs'}
-COMMON_FIELDS = {'start', 'end', 'template', 'title', 'subtitle', 'show_presenter', 'presenter_position', 'presenter_size', 'presenter_space', 'presenter', 'reason'}
+COMMON_FIELDS = {'start', 'end', 'template', 'title', 'subtitle', 'show_presenter', 'presenter_position', 'presenter_shape', 'presenter_size', 'presenter_space', 'presenter', 'reason'}
 CONTENT_FIELDS = {
     'definition': {'lead','body','body_at'},
     'opening': set(),
@@ -164,14 +164,17 @@ def validate_standard_plan(plan, cues, fontpath):
         else:text(scene.get('title', ''),44,440,'title')
         text(scene.get('subtitle', ''), 19, 440, 'subtitle')
         presenter(scene.get('presenter', {}))
-        if not isinstance(scene.get('show_presenter', False), bool):
+        if index==0 and abs(end-1/FPS)>1e-6:raise ValueError('Opening cover must last exactly one frame')
+        if index and scene.get('show_presenter',True) is not True:raise ValueError('Every playback frame requires a small presenter')
+        if scene.get('presenter_shape','circle') not in ('circle','rounded_square'):raise ValueError('Use circle or rounded_square presenter')
+        if not isinstance(scene.get('show_presenter', True), bool):
             raise ValueError('show_presenter must be boolean')
         position=scene.get('presenter_position','bottom_center')
         if position not in ('bottom_center','bottom_left','bottom_right','top'):
             raise ValueError('Use bottom_center or top for circle position')
-        size=scene.get('presenter_size',184)
-        if isinstance(size,bool) or not isinstance(size,int) or not 120<=size<=220:
-            raise ValueError('presenter_size must be an integer from 120 to 220px')
+        size=scene.get('presenter_size',128)
+        if isinstance(size,bool) or not isinstance(size,int) or not 120<=size<=156:
+            raise ValueError('presenter_size must be an integer from 120 to 156px')
         if position=='top':
             space=scene.get('presenter_space')
             if not isinstance(space,list) or len(space)!=4:
@@ -179,12 +182,12 @@ def validate_standard_plan(plan, cues, fontpath):
             x,y,w,h=[_number(v,'presenter_space') for v in space]
             if min(x,y,w,h)<0 or x+w>1 or y<.27 or y+h>.68 or min(w*W,h*H)<120:
                 raise ValueError('Top empty space must fit a 120px circle inside the upper content safe area')
-        if template in ('path','amplifier','compare','list','media') and scene.get('show_presenter',False):
+        if template!='opening':
             config=scene.get('presenter',plan.get('presenter',{}))
             if config.get('framing_confirmed') is not True or 'crop' not in config or 'head_box' not in config:
                 raise ValueError('Circle needs an explicitly inspected crop with full hair and complete face, framing_confirmed=true')
         if template == 'path':
-            count=len(scene.get('nodes', []));content_only=not scene.get('show_presenter',False)
+            count=len(scene.get('nodes', []));content_only=True
             if count not in ((2,3) if content_only else (2,)):
                 raise ValueError('Path requires two nodes, or three in content-first layout')
             timed(scene['nodes'],scene,36 if content_only else 31,300 if content_only else 170,'nodes',3 if content_only else 2)
@@ -233,6 +236,7 @@ def validate_standard_plan(plan, cues, fontpath):
             if not isinstance(box, list) or len(box) != 4 or not all(0 <= _number(v, 'media_box') <= 1 for v in box):
                 raise ValueError('media_box requires normalized x,y,width,height')
             x, y, width, height = box
+            if scene.get('presenter_position','bottom_center')!='top' and y+height>.70:raise ValueError('Keep media above the bottom small presenter: bottom<=.70')
             if width <= 0 or height <= 0 or x + width > 1 or y + height > .89 or y < .27:
                 raise ValueError('Keep media inside title and caption safe regions: y>=.27, bottom<=.89')
             for mark in scene.get('focus', []):
@@ -293,8 +297,8 @@ class StandardStyle:
             draw.polygon([(endx, endy), (endx-9*math.cos(angle-.5), endy-9*math.sin(angle-.5)), (endx-9*math.cos(angle+.5), endy-9*math.sin(angle+.5))], fill=color)
 
     def circle(self, im, frame, scene):
-        if scene.get('show_presenter', False):
-            size=scene.get('presenter_size',184)
+        if scene.get('show_presenter', True):
+            size=scene.get('presenter_size',128)
             if scene.get('presenter_position')=='top':
                 sx,sy,sw,sh=scene['presenter_space']
                 size=min(size,int(sw*W),int(sh*H))
@@ -304,7 +308,8 @@ class StandardStyle:
             crop = scene.get('_presenter_crop_base')
             if crop is None:
                 crop = self.plan.get('_presenter_crop_base')
-            circular_presenter(im, frame, (x, y, size), crop, preserve_all=True)
+            if scene.get('presenter_shape','circle')=='rounded_square':rounded_square_presenter(im,frame,(x,y,size),crop)
+            else:circular_presenter(im,frame,(x,y,size),crop,preserve_all=True)
 
     def _caption(self, im, t):
         cue = next((c for c in self.cues if c['start'] <= t < c['end']), None)
@@ -349,9 +354,9 @@ class StandardStyle:
     def _content_boxes(self, scene):
         template=scene['template'];count=len(scene.get('nodes',[]))
         if template=='path':
-            return [(96,275+j*150,416,375+j*150) for j in range(count)] if count==3 else [(96,300+j*230,416,430+j*230) for j in range(count)]
-        if template=='amplifier':return [(40,280+j*150,205,376+j*150) for j in range(len(scene.get('traits',[])))]
-        if template=='list':return [(38,300+j*130,474,396+j*130) for j in range(len(scene.get('items',[])))]
+            return [(96,255+j*134,416,343+j*134) for j in range(count)] if count==3 else [(96,280+j*178,416,388+j*178) for j in range(count)]
+        if template=='amplifier':return [(40,260+j*115,205,344+j*115) for j in range(len(scene.get('traits',[])))]
+        if template=='list':return [(38,280+j*112,474,368+j*112) for j in range(len(scene.get('items',[])))]
         return []
 
     def _board_motion(self, im, scene, t, accent):
@@ -374,13 +379,13 @@ class StandardStyle:
                 # Existing focus stays semantically authoritative; animate its enclosing frame.
                 box=marks[beat%len(marks)]['box'];a,b,c,e=box
                 boxes=[((x+a*w)*W,(y+b*h)*H,(x+c*w)*W,(y+e*h)*H)]
-        if not scene.get('show_presenter',False):
+        if True:
             content=self._content_boxes(scene)
             if template in ('path','amplifier','list'):
                 values=scene.get('nodes',[]) if template=='path' else scene.get('traits',[]) if template=='amplifier' else scene.get('items',[])
                 boxes=[box for box,item in zip(content,values) if t>=item['at']]
-                if template=='amplifier' and scene.get('traits'):boxes+=[(330,420,474,550)]
-            elif template=='compare':boxes=[(28+j*240,360+k*110,244+j*240,444+k*110) for j,col in enumerate(scene['columns']) for k,item in enumerate(col['items']) if t>=item['at']]
+                if template=='amplifier' and scene.get('traits'):boxes+=[(330,360,474,460)]
+            elif template=='compare':boxes=[(28+j*240,345+k*85,244+j*240,415+k*85) for j,col in enumerate(scene['columns']) for k,item in enumerate(col['items']) if t>=item['at']]
         if not boxes:return
         left,top,right,bottom=boxes[beat%len(boxes)]
         # One brief content-directed emphasis per beat; no perimeter tracing.
@@ -413,11 +418,11 @@ class StandardStyle:
             if template=='path' and all(t>=v['at'] for v in scene['nodes']):connections=[((235,360),(275,360))]
             if template=='amplifier' and scene.get('traits'):
                 connections=[((215,290+j*102),(326,392)) for j,v in enumerate(scene['traits']) if t>=v['at']]
-            if not scene.get('show_presenter',False):
+            if True:
                 if template=='path':
                     coords=self._content_boxes(scene)
                     connections=[((256,coords[j][3]+8),(256,coords[j+1][1]-8)) for j in range(len(coords)-1) if t>=scene['nodes'][j+1]['at']]
-                elif template=='amplifier' and scene.get('traits'):connections=[((215,328+j*150),(326,485)) for j,item in enumerate(scene['traits']) if t>=item['at']]
+                elif template=='amplifier' and scene.get('traits'):connections=[((215,302+j*115),(326,410)) for j,item in enumerate(scene['traits']) if t>=item['at']]
             if connections:
                 start,end=connections[beat%len(connections)];q=min(1,phase/1.35)
                 vx,vy=end[0]-start[0],end[1]-start[1];length=math.hypot(vx,vy)
@@ -456,7 +461,7 @@ class StandardStyle:
             mask=Image.new('L',(324,571));ImageDraw.Draw(mask).rounded_rectangle((0,0,323,570),radius=22,fill=255)
             im.paste(thumb,(94,256),mask)
         elif template=='path':
-            nodes=scene['nodes'];content_only=not scene.get('show_presenter',False)
+            nodes=scene['nodes'];content_only=True
             if content_only:
                 coords=self._content_boxes(scene)
                 for j,node in enumerate(nodes):
@@ -465,7 +470,7 @@ class StandardStyle:
                     self.panel(im,(x1,y1+dy,x2,y2+dy),'#FFFFFF' if light else '#19364A');d=ImageDraw.Draw(im)
                     self.text(d,((x1+x2)/2,(y1+y2)/2+dy),node['text'],36,accent if j==len(nodes)-1 else ink)
                     if j and t>=nodes[j-1]['at']:self.arrow(d,(256,coords[j-1][3]+8),(256,y1-8),(t-node['at'])/.4,accent)
-                if scene.get('takeaway'):self.text(d,(256,741),scene['takeaway'],26,ink)
+                if scene.get('takeaway') and t>=max(v['at'] for v in nodes):self.text(d,(256,630),scene['takeaway'],26,ink)
             else:
                 for j,node in enumerate(nodes):
                     if t<node['at']:continue
@@ -474,7 +479,6 @@ class StandardStyle:
                     self.text(d,(x+95,360+dy),node['text'],31,accent if j else ink)
                 if t>=max(v['at'] for v in nodes):self.arrow(d,(235,360),(275,360),(t-max(v['at'] for v in nodes))/.3,accent)
                 if scene.get('takeaway'):self.text(d,(38,510),scene['takeaway'],26,ink,'lm')
-                self.circle(im,original_frame,scene)
         elif template=='definition':
             self.text(d,(256,320),scene['lead'],34,ink)
             if t>=scene['body_at']:
@@ -494,32 +498,29 @@ class StandardStyle:
                 for j,item in enumerate(scene['traits']):
                     if t<item['at']:
                         continue
-                    content_only=not scene.get('show_presenter',False);yy=(280+j*150) if content_only else (254+j*102);height=96 if content_only else 72;center_y=485 if content_only else 392
+                    content_only=True;yy=(260+j*115) if content_only else (254+j*102);height=84 if content_only else 72;center_y=410 if content_only else 392
                     self.panel(im,(40,yy,205,yy+height),'#173247');d=ImageDraw.Draw(im)
                     self.text(d,(122,yy+height/2),item['text'],30,ink)
                     self.arrow(d,(215,yy+height/2),(326,center_y),(t-item['at'])/.42,accent)
-                box=(330,420,474,550) if not scene.get('show_presenter',False) else (330,348,474,437)
+                box=(330,360,474,460) if True else (330,348,474,437)
                 self.panel(im,box,'#1D4A51');d=ImageDraw.Draw(im)
                 self.text(d,(402,(box[1]+box[3])/2),scene.get('center','个人IP'),29,accent)
-            self.circle(im,original_frame,scene)
         elif template=='list':
             for j,item in enumerate(scene['items']):
                 if t<item['at']:
                     continue
-                dy=round(18*(1-smooth((t-item['at'])/.3)));content_only=not scene.get('show_presenter',False);y=(300+j*130) if content_only else (345+j*89);height=96 if content_only else 69
+                dy=round(18*(1-smooth((t-item['at'])/.3)));content_only=True;y=(280+j*112) if content_only else (345+j*89);height=88 if content_only else 69
                 self.panel(im,(38+dy,y,474,y+height),'#173247');d=ImageDraw.Draw(im)
                 self.text(d,(69+dy,y+height/2),f'0{j+1}',18,muted)
                 self.text(d,(277+dy,y+height/2),item['text'],34,accent)
-            self.circle(im,original_frame,scene)
         elif template=='compare':
             for j,col in enumerate(scene['columns']):
-                content_only=not scene.get('show_presenter',False);x=28+j*240;self.panel(im,(x,270,x+216,700 if content_only else 575),'#FFFFFF' if j==0 else '#DBECFF');d=ImageDraw.Draw(im)
+                content_only=True;x=28+j*240;self.panel(im,(x,270,x+216,620 if content_only else 575),'#FFFFFF' if j==0 else '#DBECFF');d=ImageDraw.Draw(im)
                 self.text(d,(x+108,315 if content_only else 307),col['title'],30 if content_only else 28,INK if j==0 else CYAN)
                 for k,item in enumerate(col['items']):
                     if t>=item['at']:
                         dy=round(9*(1-smooth((t-item['at'])/.25)))
-                        self.text(d,(x+108,(400+k*110 if content_only else 362+k*74)+dy),item['text'],28 if content_only else 25,INK if j==0 else CYAN)
-            self.circle(im,original_frame,scene)
+                        self.text(d,(x+108,(380+k*85 if content_only else 362+k*74)+dy),item['text'],28 if content_only else 25,INK if j==0 else CYAN)
         elif template=='media':
             if media_image is None:
                 raise ValueError('Media template requires decoded media_image from the caller')
@@ -532,7 +533,6 @@ class StandardStyle:
             for mark in scene.get('focus',[]):
                 if t>=mark['at']:
                     a,b,c,e=mark['box'];d.rectangle((px+a*pic.width,py+b*pic.height,px+c*pic.width,py+e*pic.height),outline=accent,width=3)
-            self.circle(im,original_frame,scene)
         if template not in ('opening','presenter'):self._board_motion(im,scene,t,accent)
         if scene_index and u<TRANSITION_SECONDS:
             q=u/TRANSITION_SECONDS;layer=Image.new('RGBA',(W,H));ld=ImageDraw.Draw(layer)
@@ -544,7 +544,9 @@ class StandardStyle:
                 ld.rectangle((0,0,W,H),fill=(240,237,230,round(35*(1-q))))
             im=Image.alpha_composite(im,layer)
         # Caption is last so transitions never interrupt a speech cue.
-        if template!='opening':im=self._caption(im,t)
+        if template!='opening':
+            self.circle(im,original_frame,scene)
+            im=self._caption(im,t)
         if template=='opening':return im.convert('RGB')
         d=ImageDraw.Draw(im);d.rectangle((32,871,480,872),fill='#666158');d.rectangle((32,871,32+448*min(1,max(0,t/self.duration)),872),fill=accent)
         return im.convert('RGB')

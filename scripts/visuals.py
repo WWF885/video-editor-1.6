@@ -41,3 +41,15 @@ def circular_presenter(canvas, source, box, crop=None, preserve_all=False):
     mask=Image.new('L',(inner,inner));ImageDraw.Draw(mask).ellipse((0,0,inner-1,inner-1),fill=255);result.paste(pic,(x+rim,y+rim),mask)
     d=ImageDraw.Draw(result);d.arc((x+1,y+1,x+size-2,y+size-2),200,305,fill=(255,255,255,255),width=max(1,round(s)))
     canvas.paste(result.convert(canvas.mode))
+
+def rounded_square_presenter(canvas,source,box,crop=None):
+    x,y,size=map(round,box)
+    if x<0 or y<0 or x+size>canvas.width or y+size>canvas.height:raise ValueError('Presenter outside canvas')
+    bounds=tuple(round(v*(source.width if i%2==0 else source.height)) for i,v in enumerate(crop)) if crop else (0,0,*source.size)
+    rim=2;inner=size-2*rim;radius=round(size*.16)
+    pic=ImageOps.fit(source.crop(bounds),(inner,inner),Image.Resampling.LANCZOS).convert('RGBA')
+    shadow=Image.new('RGBA',canvas.size);d=ImageDraw.Draw(shadow);d.rounded_rectangle((x,y+4,x+size,y+size+4),radius=radius,fill=(3,9,20,100))
+    result=Image.alpha_composite(canvas.convert('RGBA'),shadow.filter(ImageFilter.GaussianBlur(5)))
+    ImageDraw.Draw(result).rounded_rectangle((x,y,x+size-1,y+size-1),radius=radius,fill='white')
+    mask=Image.new('L',(inner,inner));ImageDraw.Draw(mask).rounded_rectangle((0,0,inner-1,inner-1),radius=max(1,radius-rim),fill=255)
+    result.paste(pic,(x+rim,y+rim),mask);canvas.paste(result.convert(canvas.mode))
