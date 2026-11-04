@@ -1,6 +1,6 @@
-# video-editor-1.5
+# video-editor-1.6
 
-当前版本：**v1.5（严格执行版）**
+当前版本：**v1.6（短封面与动态画板版）**
 
 固定模板、内置字体与画面校验，让不同用户使用同一套画面生成程序。默认 `wenfeng-standard-v1`；AI只填写内容、选择模板和匹配素材，不临时改写样式。
 
@@ -41,7 +41,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 
 未打包用户真人原始视频、私人项目、账号信息或参考博主素材。技术检查不代替字幕核对和听审。字体许可见assets/fonts/OFL.txt。
 
-技能调用名：`video-editor-v1-5`。英文技能及项目命名统一使用 `wwf` 前缀。
+技能调用名：`video-editor-v1-6`。英文技能及项目命名统一使用 `wwf` 前缀。
 
 ## 1.4 默认剪辑规则
 
@@ -50,7 +50,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 - 圆形头像必须等比铺满原视频，不留白。优先完整头发和整张脸（含下巴），再考虑肩部；保留白边与立体阴影，逐段检查运动。
 - 按完整语义段划分paragraphs，每段一场景，相邻模板必须不同。
 - 左上角为当前段落概述，右上角不显示序号。
-- plan需使用standard_version=1.5，并填写opening_title、paragraphs、presenter.framing_confirmed；旧计划需重新检查和编排，不能仅改版本号。
+- plan需使用standard_version=1.6，并填写opening_title、paragraphs、presenter.framing_confirmed；旧计划需重新检查和编排，不能仅改版本号。
 
 1.4 圆窗更新：取消圆内缩小矩形与底色留白，采用原片cover铺满；头发、整张脸优先于肩膀。附防留白回归检查。
 
@@ -78,7 +78,7 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 
 ## v1.5 安装一致性与正式交付
 
-技能调用名：`video-editor-v1-5`；显示名称：video-editor-1.5。旧版技能请停用，完整安装新版，禁止把新旧文件混合覆盖。请使用同一固定提交的下载包，不要仅比较名称或使用会变化的main分支来约定版本。
+技能调用名：`video-editor-v1-6`；显示名称：video-editor-1.6。旧版技能请停用，完整安装新版，禁止把新旧文件混合覆盖。请使用同一固定提交的下载包，不要仅比较名称或使用会变化的main分支来约定版本。
 
 安装完成后运行：
 
@@ -87,7 +87,7 @@ python scripts/run.py --version
 python scripts/run.py --check
 ```
 
-应输出standard_version=1.5，并且双方的package_fingerprint完全相同、40个画面校验点通过。安装缺文件、文件被修改或版本混用时会停止。README不参与运行包校验。
+应输出standard_version=1.6，并且双方的package_fingerprint完全相同、40个画面校验点通过。安装缺文件、文件被修改或版本混用时会停止。README不参与运行包校验。
 
 生成结果先为候选成片。复制assets/visual-review-template.json到项目目录，实际逐段抽帧核对标题、头脸、肩部、圆窗位置、遮挡、分镜和字幕时间；填写真实审核者、证据以及成片和review报告的SHA256。检查项默认未通过，禁止未检查直接勾选。然后执行：
 
@@ -96,3 +96,14 @@ python scripts/finalize.py --video work/final.mp4 --review work/visual-review.js
 ```
 
 仅.delivery.json的status为approved_for_delivery才可当正式成片交付；没有审核的只能明确标作草稿。记录绑定当前视频、报告和安装指纹，改视频必须重新审核。未执行听审须如实记录not_performed。此机制不能证明人工勾选真实，也无法强制约束绕过程序的Agent；不能运行内置程序时应说明限制。
+
+## v1.6 最新要求（覆盖旧版标题与画板规则）
+
+- 首帧就是封面，使用原始主视频第0帧；首个cut必须从0开始。封面标题恰好两行，每行最多4个字符，总计最多8个字符，无标点、空格或符号，逐行水平居中，80px描边大字、金色关键词。先给3个两行候选标题，由用户选择或自定；超长题重新概括并确认。
+- 首帧不叠对白字幕、段落角标和进度条，后续恢复单行字幕与左上段落概述；右上无编号。开场对白仍保留原声与完整cue/SRT。run.py另外导出.cover.png。
+- 圆窗必须完整露出全部头发、头顶、两侧鬓角、脸和下巴。新增presenter.head_box，记录整段运动的完整头部包围范围；用原视频尺寸检查该框四角都落在实际圆内，并保留10%径向安全余量。不能用只含五官的面部检测框代替。框来自实际检查，不是自动人脸检测；原片已经裁掉的部分无法恢复。
+- 画板每2.4秒轮换知识卡描边追踪、节点强调与已有连线流动；图解随讲话递进。单画板场景最长12秒，建议4–8秒，段段换模板。严禁几十秒只换字幕。
+- 实际导出后以5fps检查知识区域，排除头像、字幕、标题、进度条；连续近似静止超过3秒会停止。像素检查不证明语义正确，仍须抽帧复核。没有口播、素材或可靠字幕时不编造。
+- 交付审核新增两行短封面、头部证据和画板静止时长检查，未通过只能交付明确标注的草稿。
+
+安装完整替换旧版、停用旧技能，调用 `video-editor-v1-6`，先执行 `python scripts/run.py --check`。旧计划不能仅改版本号，需补两行标题、head_box、cuts并重新分镜。双方使用同一固定提交并比较package_fingerprint。自测涵盖40个栅格点、8秒合成片、完整头部几何检查和静止画板负例；合成测试不等于真实素材听审。

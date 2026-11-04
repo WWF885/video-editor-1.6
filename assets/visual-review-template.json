@@ -12,9 +12,12 @@
     "hair_and_face_visible": false,
     "circle_filled_and_positioned": false,
     "no_content_occlusion": false,
-    "caption_timing_checked": false
+    "caption_timing_checked": false,
+    "cover_two_lines_four_chars": false,
+    "board_static_under_three_seconds": false
   },
   "shoulders": "pending",
   "source_limitation": "",
-  "listening_review": "not_performed"
+  "listening_review": "not_performed",
+  "head_evidence": []
 }

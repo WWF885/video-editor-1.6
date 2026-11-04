@@ -28,6 +28,9 @@ def samples():
     bad=copy.deepcopy(plan);bad['scenes'][2]['template']=bad['scenes'][1]['template'];cases.append((bad,'Adjacent paragraphs'))
     bad=copy.deepcopy(plan);bad['paragraphs'][1]['summary']='';cases.append((bad,'paragraph summary'))
     bad=copy.deepcopy(plan);bad['presenter']['framing_confirmed']=False;cases.append((bad,'Circle needs'))
+    bad=copy.deepcopy(plan);bad['opening_title']['text']='标准，模板效果演示';cases.append((bad,'punctuation'))
+    bad=copy.deepcopy(plan);bad['opening_title']['lines']=['标准模板效果','演示'];cases.append((bad,'two explicit lines'))
+    bad=copy.deepcopy(plan);bad['cuts'][0]['in']=1;cases.append((bad,'frame zero'))
     for bad,expected in cases:
         try:validate_standard_plan(bad,cues,font)
         except ValueError as error:
@@ -39,10 +42,16 @@ def samples():
     circular_presenter(canvas,source,(18,18,184),[0,0,1,1],preserve_all=True)
     for point in [(110,39),(110,181),(39,110),(181,110),(110,110)]:
         if canvas.getpixel(point)!=(201,33,61):raise AssertionError('Circular portrait contains letterbox/padding instead of source pixels')
+    from standard_style import validate_presenter_geometry
+    validate_presenter_geometry(plan['presenter'],(512,902))
+    clipped=dict(plan['presenter'],crop=[.40,.20,.60,.40])
+    try:validate_presenter_geometry(clipped,(512,902))
+    except ValueError:pass
+    else:raise AssertionError('Clipped full head accepted')
     return rows
 
 def main():
     check_environment();actual=samples();expected=json.loads((ROOT/'assets/reference-raster.json').read_text())
     if actual!=expected:raise SystemExit('Raster verification failed: check pinned environment, full package and font; do not silently render a different style')
-    print(json.dumps({'profile':'wenfeng-standard-v1','standard_version':'1.5','raster_samples':len(actual),'status':'passed'},ensure_ascii=False))
+    print(json.dumps({'profile':'wenfeng-standard-v1','standard_version':'1.6','raster_samples':len(actual),'status':'passed'},ensure_ascii=False))
 if __name__=='__main__':main()

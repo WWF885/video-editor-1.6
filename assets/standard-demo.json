@@ -1,6 +1,6 @@
 {
   "style_profile": "wenfeng-standard-v1",
-  "standard_version": "1.5",
+  "standard_version": "1.6",
   "width": 512,
   "height": 902,
   "fps": 30,
@@ -11,7 +11,13 @@
       0.9375,
       0.5487804878048781
     ],
-    "framing_confirmed": true
+    "framing_confirmed": true,
+    "head_box": [
+      0.353515625,
+      0.1662971175166297,
+      0.724609375,
+      0.4279379157427938
+    ]
   },
   "scenes": [
     {
@@ -19,7 +25,7 @@
       "end": 2,
       "template": "opening",
       "title": "标准模板效果演示",
-      "subtitle": "合成校准素材 · 无真人与口播"
+      "subtitle": ""
     },
     {
       "start": 2,
@@ -162,6 +168,10 @@
     "source": "user",
     "highlights": [
       "标准模板"
+    ],
+    "lines": [
+      "标准模板",
+      "效果演示"
     ]
   },
   "paragraphs": [
@@ -204,6 +214,12 @@
       "start": 14,
       "end": 16,
       "summary": "总结收束"
+    }
+  ],
+  "cuts": [
+    {
+      "in": 0,
+      "out": 16
     }
   ]
 }

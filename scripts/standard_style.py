@@ -6,6 +6,7 @@ the scene. No media decoding, audio changes, random layout or network access.
 """
 import math
 import re
+import unicodedata
 from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from visuals import circular_presenter, frosted_background
@@ -47,35 +48,33 @@ def _crop(value, label):
 
 
 def opening_title_lines(opening, font):
-    value=opening['text']; highlights=opening.get('highlights',[])
-    if not isinstance(highlights,list) or not 1 <= len(highlights) <= 3 or any(not isinstance(k,str) or not k or k not in value for k in highlights):
-        raise ValueError('Opening title requires one to three keywords occurring in its text')
-    lines=opening.get('lines')
-    if lines is None:
-        if font.getlength(value)<=440:lines=[value]
-        else:
-            choices=[]
-            for i in range(1,len(value)):
-                if any(a<i<a+len(k) for k in highlights for a in [value.find(k)]):continue
-                left,right=value[:i],value[i:]
-                if max(font.getlength(left),font.getlength(right))<=440:
-                    score=abs(font.getlength(left)-font.getlength(right))-(300 if left[-1] in '，：！？、' else 0)
-                    choices.append((score,[left,right]))
-            if not choices:raise ValueError('Shorten opening title to fit two large lines')
-            lines=min(choices,key=lambda v:v[0])[1]
-    if not isinstance(lines,list) or not 1<=len(lines)<=2 or any(not isinstance(v,str) or not v or '\n' in v or font.getlength(v)>440 for v in lines) or ''.join(lines)!=value:
-        raise ValueError('Opening lines must reproduce the title in one or two large lines within 440px')
-    if any(not any(k in line for line in lines) for k in highlights):
-        raise ValueError('Do not split a title keyword across lines')
+    value=opening['text'];lines=opening.get('lines');highlights=opening.get('highlights',[])
+    if any(not ch.isalnum() for ch in value):
+        raise ValueError('Cover title must contain no punctuation, whitespace or symbols')
+    if not isinstance(lines,list) or len(lines)!=2 or any(not isinstance(v,str) or not 1<=len(v)<=4 or font.getlength(v)>440 for v in lines) or ''.join(lines)!=value:
+        raise ValueError('Cover title requires exactly two explicit lines, one to four characters per line')
+    if not isinstance(highlights,list) or not 1<=len(highlights)<=3 or any(not isinstance(k,str) or not k or not any(k in line for line in lines) for k in highlights):
+        raise ValueError('Cover keywords must occur within one line')
     return lines
+
+
+def validate_presenter_geometry(config, source_size):
+    """Check a manually inspected full-head envelope against the actual cover crop."""
+    sw,sh=source_size;crop=config['crop'];head=config['head_box']
+    l,t,r,b=[v*(sw if i%2==0 else sh) for i,v in enumerate(crop)]
+    cx,cy=(l+r)/2,(t+b)/2;radius=min(r-l,b-t)*.45
+    for x in (head[0]*sw,head[2]*sw):
+        for y in (head[1]*sh,head[3]*sh):
+            if math.hypot(x-cx,y-cy)>radius:
+                raise ValueError('Full hair/face head_box is clipped by the circle; widen or reposition source crop')
 
 
 def validate_standard_plan(plan, cues, fontpath):
     """Validate the entire public fixed-style plan before opening the encoder."""
     if set(plan) - TOP_FIELDS:
         raise ValueError('Unsupported standard plan fields: ' + ', '.join(sorted(set(plan) - TOP_FIELDS)))
-    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.5':
-        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.5')
+    if plan.get('style_profile') != PROFILE or plan.get('standard_version') != '1.6':
+        raise ValueError('Use style_profile=wenfeng-standard-v1, standard_version=1.6')
     for key, value in [('width', W), ('height', H), ('fps', FPS)]:
         if plan.get(key, value) != value:
             raise ValueError(f'Standard mode locks {key}={value}')
@@ -97,12 +96,15 @@ def validate_standard_plan(plan, cues, fontpath):
                 raise ValueError(f'{label} item is outside scene')
             text(item['text'], size, limit, label, True)
     def presenter(config):
-        if not isinstance(config, dict) or set(config) - {'crop', 'framing_confirmed'}:
-            raise ValueError('Standard presenter allows only crop and framing_confirmed')
+        if not isinstance(config, dict) or set(config) - {'crop', 'framing_confirmed', 'head_box'}:
+            raise ValueError('Standard presenter allows crop, head_box and framing_confirmed')
         if 'crop' in config:
             _crop(config['crop'], 'presenter.crop')
+        if 'head_box' in config:
+            _crop(config['head_box'], 'presenter.head_box')
         if 'framing_confirmed' in config and not isinstance(config['framing_confirmed'],bool):
             raise ValueError('framing_confirmed must be boolean after visual inspection')
+    if not plan.get('cuts') or plan['cuts'][0].get('in')!=0:raise ValueError('Cover must use original source frame zero; first cut must start at zero')
     presenter(plan.get('presenter', {}))
     opening=plan.get('opening_title')
     if not isinstance(opening,dict) or set(opening)-{'text','approved','source','candidates','lines','highlights'} or opening.get('approved') is not True or opening.get('source') not in ('user','chosen'):
@@ -110,7 +112,7 @@ def validate_standard_plan(plan, cues, fontpath):
     title_value=opening.get('text')
     if not isinstance(title_value,str) or not title_value.strip() or '\n' in title_value or '\r' in title_value:
         raise ValueError('opening_title.text must be a nonempty title')
-    opening_title_lines(opening, font(52))
+    opening_title_lines(opening, font(80))
     if opening.get('source')=='chosen':
         candidates=opening.get('candidates')
         if not isinstance(candidates,list) or len(candidates)!=3 or any(not isinstance(v,str) or not v.strip() for v in candidates) or title_value not in candidates:
@@ -143,9 +145,11 @@ def validate_standard_plan(plan, cues, fontpath):
             raise ValueError('Standard scenes must be contiguous, start at zero and have positive duration')
         if abs(start-paragraphs[index]['start'])>1e-6 or abs(end-paragraphs[index]['end'])>1e-6:raise ValueError('Each scene must match its speech paragraph timing')
         previous = end
+        if template not in ('opening','presenter') and end-start>12:
+            raise ValueError('Board scene exceeds 12 seconds; split at a meaningful speech boundary and change template')
         if index==0:
             if scene.get('title')!=title_value:raise ValueError('First scene title must match the approved opening title')
-            opening_title_lines(opening, font(52))
+            opening_title_lines(opening, font(80))
         else:text(scene.get('title', ''),38,440,'title')
         text(scene.get('subtitle', ''), 19, 440, 'subtitle')
         presenter(scene.get('presenter', {}))
@@ -166,7 +170,7 @@ def validate_standard_plan(plan, cues, fontpath):
                 raise ValueError('Top empty space must fit a 120px circle inside the upper content safe area')
         if template in ('path','amplifier','compare','list','media') and scene.get('show_presenter',True):
             config=scene.get('presenter',plan.get('presenter',{}))
-            if config.get('framing_confirmed') is not True or 'crop' not in config:
+            if config.get('framing_confirmed') is not True or 'crop' not in config or 'head_box' not in config:
                 raise ValueError('Circle needs an explicitly inspected crop with full hair and complete face, framing_confirmed=true')
         if template == 'path':
             if len(scene.get('nodes', [])) != 2:
@@ -302,13 +306,13 @@ class StandardStyle:
         return Image.alpha_composite(im,layer)
 
     def art_title(self, im, value):
-        opening=self.plan['opening_title'];font=self.font(52)
+        opening=self.plan['opening_title'];font=self.font(80)
         lines=opening_title_lines(opening,font)
         shadow=Image.new('RGBA',(W,H));sd=ImageDraw.Draw(shadow)
         foreground=Image.new('RGBA',(W,H));d=ImageDraw.Draw(foreground)
         keywords=sorted(opening['highlights'],key=len,reverse=True)
         for j,line in enumerate(lines):
-            yy=(77+j*57) if len(lines)==2 else 104
+            yy=62+j*88
             x=256-font.getlength(line)/2
             sd.text((x+3,yy+5),line,font=font,anchor='lm',fill=(0,0,0,220),stroke_width=4)
             spans=re.split('('+'|'.join(re.escape(k) for k in keywords)+')',line)
@@ -320,6 +324,47 @@ class StandardStyle:
                 x+=font.getlength(span)
         im.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(3)))
         im.alpha_composite(foreground)
+
+    def _board_motion(self, im, scene, t, accent):
+        u=t-scene['start'];beat=int(u/2.4);phase=(u%2.4)/.65
+        template=scene['template'];boxes=[]
+        if template=='path':
+            boxes=[(38+j*246,300,228+j*246,420) for j,v in enumerate(scene['nodes']) if t>=v['at']]
+        elif template=='amplifier':
+            if scene.get('metric'):boxes=[(40,275,472,420)]
+            else:boxes=[(40,254+j*102,205,326+j*102) for j,v in enumerate(scene['traits']) if t>=v['at']]+[(330,348,474,437)]
+        elif template=='list':boxes=[(38,345+j*89,474,414+j*89) for j,v in enumerate(scene['items']) if t>=v['at']]
+        elif template=='compare':
+            boxes=[(28+j*240,330+k*74,244+j*240,394+k*74) for j,col in enumerate(scene['columns']) for k,v in enumerate(col['items']) if t>=v['at']]
+        elif template=='statement':boxes=[(40,435,472,540)]
+        elif template=='media':
+            marks=[v for v in scene.get('focus',[]) if t>=v['at']]
+            x,y,w,h=scene.get('media_box',[.06,.28,.88,.58]);boxes=[(x*W,y*H,(x+w)*W,(y+h)*H)]
+            if marks:
+                # Existing focus stays semantically authoritative; animate its enclosing frame.
+                box=marks[beat%len(marks)]['box'];a,b,c,e=box
+                boxes=[((x+a*w)*W,(y+b*h)*H,(x+c*w)*W,(y+e*h)*H)]
+        if not boxes:return
+        left,top,right,bottom=boxes[beat%len(boxes)]
+        # Trace the active knowledge card. The trace restarts every 2.4 seconds.
+        q=smooth(min(1,phase));perimeter=2*(right-left+bottom-top);remain=perimeter*q
+        layer=Image.new('RGBA',(W,H));d=ImageDraw.Draw(layer)
+        corners=[(left,top),(right,top),(right,bottom),(left,bottom),(left,top)]
+        for start,end in zip(corners,corners[1:]):
+            length=math.dist(start,end);part=min(length,remain)
+            if part>0:d.line((start,(start[0]+(end[0]-start[0])*part/length,start[1]+(end[1]-start[1])*part/length)),fill=accent,width=3)
+            remain-=part
+        # Re-trace existing causal connections; never reveal unheard nodes.
+        if phase<1:
+            connections=[]
+            if template=='path' and all(t>=v['at'] for v in scene['nodes']):connections=[((235,360),(275,360))]
+            if template=='amplifier' and scene.get('traits'):
+                connections=[((215,290+j*102),(326,392)) for j,v in enumerate(scene['traits']) if t>=v['at']]
+            if connections:
+                start,end=connections[beat%len(connections)];q=smooth(phase)
+                px=start[0]+(end[0]-start[0])*q;py=start[1]+(end[1]-start[1])*q
+                d.ellipse((px-4,py-4,px+4,py+4),fill=accent)
+        im.alpha_composite(layer)
 
     def render(self, original_frame, t, scene_index, scene, *, media_image=None):
         if original_frame.size != (W,H):
@@ -335,8 +380,6 @@ class StandardStyle:
             veil=Image.new('RGBA',(W,H));vd=ImageDraw.Draw(veil)
             for yy in range(224):vd.line((0,yy,W,yy),fill=(6,17,29,round(185*(1-yy/224))))
             im=Image.alpha_composite(im,veil);d=ImageDraw.Draw(im)
-            sw=self.font(15).getlength(summary);d.rounded_rectangle((24,8,42+sw,38),radius=12,fill=(10,27,42,180))
-            self.text(d,(33,23),summary,15,WHITE,'lm')
             self.art_title(im,title)
         else:
             d.line((32,103,480,103),fill='#CED9E5' if light else '#294052',width=1)
@@ -412,6 +455,7 @@ class StandardStyle:
                 if t>=mark['at']:
                     a,b,c,e=mark['box'];d.rectangle((px+a*pic.width,py+b*pic.height,px+c*pic.width,py+e*pic.height),outline=accent,width=3)
             self.circle(im,original_frame,scene)
+        if template not in ('opening','presenter'):self._board_motion(im,scene,t,accent)
         if scene_index and u<TRANSITION_SECONDS:
             q=u/TRANSITION_SECONDS;layer=Image.new('RGBA',(W,H));ld=ImageDraw.Draw(layer)
             if scene_index%3==0:
@@ -422,6 +466,7 @@ class StandardStyle:
                 ld.rectangle((0,0,W,H),fill=(240,248,255,round(65*(1-q))))
             im=Image.alpha_composite(im,layer)
         # Caption is last so transitions never interrupt a speech cue.
-        im=self._caption(im,t)
+        if template!='opening':im=self._caption(im,t)
+        if template=='opening':return im.convert('RGB')
         d=ImageDraw.Draw(im);d.rectangle((32,871,480,873),fill='#344B5A');d.rectangle((32,871,32+448*min(1,max(0,t/self.duration)),873),fill=accent)
         return im.convert('RGB')

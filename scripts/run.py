@@ -11,8 +11,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = "wenfeng-standard-v1"
-VERSION = "1.5"
-SKILL_NAME = "video-editor-v1-5"
+VERSION = "1.6"
+SKILL_NAME = "video-editor-v1-6"
 
 def check_environment():
     failures = []
@@ -83,7 +83,7 @@ def main():
     plan = json.loads(Path(args.plan).read_text())
     if plan.get("style_profile", PROFILE) != PROFILE:
         parser.error("run.py accepts only wenfeng-standard-v1; custom/legacy rendering uses render.py explicitly")
-    if plan.get("standard_version", "1.5") != "1.5":
+    if plan.get("standard_version", "1.6") != "1.6":
         parser.error("Unsupported standard_version; use the matching release")
     # Make omitted profile explicit; never mutate the author's plan on disk.
     if "style_profile" not in plan:
@@ -92,6 +92,7 @@ def main():
     subprocess.run([sys.executable, str(ROOT / "scripts" / "render.py"), "--source", args.source,
                     "--plan", args.plan, "--captions", args.captions,
                     "--font", str(ROOT / "assets" / "fonts" / "NotoSansCJKsc-Regular.otf"), "--output", str(output)], check=True)
+    subprocess.run(['ffmpeg','-nostdin','-v','error','-y','-i',str(output),'-frames:v','1',str(output.with_suffix('.cover.png'))],check=True)
     cues=json.loads(Path(args.captions).read_text())
     def timestamp(t):
         n=round(t*1000)
@@ -99,6 +100,12 @@ def main():
     output.with_suffix('.srt').write_text(''.join(f"{i+1}\n{timestamp(c['start'])} --> {timestamp(c['end'])}\n{c['text']}\n\n" for i,c in enumerate(cues)),encoding='utf-8')
     report_path=output.with_suffix(".review.json")
     report=json.loads(report_path.read_text())
+    from audit_motion import audit_motion
+    motion=audit_motion(output,plan)
+    report['board_static_audit']=motion
+    if motion['status']!='passed':
+        report_path.write_text(json.dumps(report,ensure_ascii=False,indent=2))
+        raise SystemExit('Board static gap exceeds 3 seconds; repair before delivery: '+json.dumps(motion['failures']))
     report.update(delivery_status="candidate_pending_visual_review",standard_version=VERSION,package_fingerprint=environment["package_fingerprint"],output_sha256=hashlib.sha256(output.read_bytes()).hexdigest())
     report_path.write_text(json.dumps(report,ensure_ascii=False,indent=2))
     output.with_suffix(".environment.json").write_text(json.dumps(environment, ensure_ascii=False, indent=2))

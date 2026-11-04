@@ -15,12 +15,12 @@ python scripts/run.py --source input.mp4 --plan plan.json --captions captions.js
 Dockerfile提供隔离安装入口，构建`docker build -t wenfeng-editor .`，Windows/macOS/Linux可以挂载工作目录后运行。Docker构建使用固定Python与Python依赖；操作系统包仓库会变化，不能把同一Dockerfile当作不可变镜像。严格跨机器复现需使用同一已构建镜像摘要与CPU架构；当前包不宣称已发布或测试这样的镜像。
 
 ## 锁定与可填写字段
-必须给出`style_profile: "wenfeng-standard-v1"`，必须给出`standard_version: "1.5"`；width512、height902、fps30固定。未知字段、其他颜色/字体/尺寸/字幕位置会报错。cuts记录主口播源入出点；没有cuts时保留全片。scenes从0开始连续覆盖完整成片。字幕使用最终成片真实时刻。
+必须给出`style_profile: "wenfeng-standard-v1"`，必须给出`standard_version: "1.6"`；width512、height902、fps30固定。未知字段、其他颜色/字体/尺寸/字幕位置会报错。cuts记录主口播源入出点；必须明确提供cuts且第一段in=0。scenes从0开始连续覆盖完整成片。字幕使用最终成片真实时刻。
 
-开场必须用opening模板，直接显示原视频全画面，艺术字标题第一帧可见。渲染前必须提供3个候选标题供用户选择，或采用用户自定标题。plan.opening_title记录`{"text":"选定标题","approved":true,"source":"chosen"}`；source可以user表示自定，禁止伪造approved。
-paragraphs是完整语义段列表，每项`{"start":0,"end":3,"summary":"本段概述"}`，与scenes在时间、数量上一一对应且覆盖全片。相邻scene的template必须不同；首段opening，后段可在7种模板中轮换。左上角显示summary，右上角不显示编号。标题、图解超宽时精简概括；字幕超宽时按真实语音分句，禁止缩字或均分时间。对白cue为`start,end,text,highlights`，highlights最多2个，必须存在于文字中。字幕单行固定26px及底部深色底条。
+开场必须用opening模板，直接显示原视频全画面，艺术字标题第一帧可见。渲染前必须提供3个候选标题供用户选择，或采用用户自定标题。plan.opening_title记录`{"text":"用AI做生意","lines":["用AI","做生意"],"highlights":["AI","生意"],"approved":true,"source":"user"}`；此为字段示例，实际须用户确认；source=chosen时还必须保存3个候选标题candidates，禁止伪造approved。
+paragraphs是完整语义段列表，每项`{"start":0,"end":3,"summary":"本段概述"}`，与scenes在时间、数量上一一对应且覆盖全片。相邻scene的template必须不同；首段opening，后段可在7种模板中轮换。首帧纯封面；后续左上角显示summary，右上角不显示编号。标题、图解超宽时精简概括；字幕超宽时按真实语音分句，禁止缩字或均分时间。对白cue为`start,end,text,highlights`，highlights最多2个，必须存在于文字中。字幕单行固定26px及底部深色底条。
 
-所有场景共同字段：start,end,template,title,subtitle,show_presenter,presenter_position,reason,presenter。presenter接受crop和framing_confirmed:true，表示源视频视觉方向归一化[left,top,right,bottom]矩形或正方形取景；圆窗等比cover铺满，禁止留白和拉伸。framing_confirmed必须依据逐段抽帧，确认完整头发和整张脸；肩部仅在不影响头脸完整时保留，不是自动检测。presenter_position可bottom_left/bottom_right。人物圆框、白边阴影由程序固定，不能重新生成头像。优先头发与整张脸，肩部可少露；原片本身缺失头脸范围时报告素材限制。
+所有场景共同字段：start,end,template,title,subtitle,show_presenter,presenter_position,presenter_size,presenter_space,reason,presenter。presenter接受crop、head_box和framing_confirmed:true，表示源视频视觉方向归一化[left,top,right,bottom]矩形或正方形取景；圆窗等比cover铺满，禁止留白和拉伸。framing_confirmed必须依据逐段抽帧，确认完整头发和整张脸；肩部仅在不影响头脸完整时保留，不是自动检测。presenter_position默认bottom_center，可top并配presenter_space。人物圆框、白边阴影由程序固定，不能重新生成头像。优先头发与整张脸，肩部可少露；原片本身缺失头脸范围时报告素材限制。
 
 | template | 内容字段 | 固定呈现 |
 | --- | --- | --- |
@@ -46,6 +46,17 @@ run.py同时校验standard-manifest.json中的字体和程序文件。渲染revi
 
 标准演示的预置标题与approved标记仅用于无口播的合成校准，不代表用户确认过真实作品；剪辑真实口播时必须重新获取用户选定标题。
 
-开场爆款标题：固定大字52px，短标题一行，长标题按语意分成两行（最多两行），禁止缩小字号塞入一行。opening_title.highlights 必填1–3个原文关键词，以暖金色、加粗描边与白色正文区分；opening_title.lines 可指定分行，拼接必须与已确认标题完全一致，关键词不得跨行。标题不得遮挡人物头发与脸；对白字幕仍严格单行。
 
 圆窗位置与缩放：默认下方水平居中（bottom_center），底边固定在790px、避开单行字幕；旧bottom_left/bottom_right计划也统一居中。presenter_size允许120–220px，默认184px。上方使用top，先检查整段文字、图解和素材的占用范围，再填写空白区域presenter_space=[x,y,width,height]（归一化，位于y=.27–.68）；圆窗居中于该区域并自动缩小至容纳范围。不得遮挡信息；若整段没有足够空白，则移到下方居中。位置与大小按场景固定，禁止随每帧检测跳动；缩放后仍须逐段检查完整头发与整张脸。脚本不自动识别空白，空白区域由编排阶段检查后指定。
+
+## v1.6 封面与画板节奏（优先于历史规则）
+
+- 首帧即封面，背景必须为原始主视频第0帧，不能用加工过的旧成片或截图替代。cuts第一个in必须为0；渲染时首段原视频持续正常播放，不冻结、不静音。另存成片第0帧为cover.png供发布。
+- 剪辑前给3个候选短标题，每个明确列出两行供选择，用户也可自定。标题必须恰好两行，每行1–4个字符、总计不超过8个字符；标点、空格、符号均禁用。英文和数字也逐字符计数。长题必须重新概括并由用户确认，不能机械截断。每行独立水平居中，固定80px大号描边艺术字，关键词暖金色加粗；首帧不叠段落角标、对白字幕和进度条，第二场恢复单行对白字幕。字幕cue/SRT仍保留开场实际语音，不删稿。
+- 圆窗优先完整头发、头顶、两侧鬓角、脸和下巴，不能只显示五官。填写presenter.head_box（归一化left,top,right,bottom），它是该场景起中末及运动极值帧完整头部范围的并集，不能只标面部检测框。几何检查要求头框四角位于cover圆内且留10%径向安全量，失败就扩大/平移原视频crop，不靠缩小圆窗补救。原片已截掉的头发或脸无法恢复，须索要原片或明确素材限制，禁止人工勾选通过。
+- 每个完整语义段更换场景和模板；长段继续按真实分句切分。单个画板场景最长12秒，建议4–8秒，禁止用一个模板撑几十秒。
+- 画板最长连续静止不得超过3秒。内置每2.4秒对已出现的知识卡/节点/对比项/素材重点轮换描边追踪，动画约0.65秒；新节点、箭头、重点随讲话时间渐进出现。动态必须作用于知识内容，不能把头像嘴动、字幕变化、底部进度条或背景闪烁当作画板动效。未说到的信息不能提前出现；不要抖动或随机缩放人物。相邻长段轮换路径、对比、观点、清单、素材等展示，避免只换字。
+- 交付前检查封面0帧与缩略图可读性；圆窗每场起中末及动作极值抽查；画板以1秒步进检查整个时间线，记录最长静止段。assets/visual-review-template.json新增封面与静止时长项、head_evidence；审核事实与实际成片绑定。几何框来自真实检查，不宣称自动识别完整头发，人工框错仍会导致错误。
+- 参考本次外部成片暴露的失败：长标题带标点；缩略图标题不够集中；头发/下巴被圆边裁切；重复图解停留过久；部分清单图解与真人大小关系单一。只拿截图和文字说明并不能证明安装成功，必须执行--check并交付环境、剪辑计划与验收报告。
+
+run.py在实际成片上以5fps检查知识内容区域，排除圆窗、字幕、标题和进度条，超过3秒近似静止即停止。像素变化检查不能判定动效语义，仍需视觉复核。
