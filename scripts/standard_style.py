@@ -119,7 +119,7 @@ def validate_standard_plan(plan, cues, fontpath):
     title_value=opening.get('text')
     if not isinstance(title_value,str) or not title_value.strip() or '\n' in title_value or '\r' in title_value:
         raise ValueError('opening_title.text must be a nonempty title')
-    opening_title_lines(opening, font(80))
+    opening_title_lines(opening, font(96))
     if opening.get('source')=='chosen':
         candidates=opening.get('candidates')
         if not isinstance(candidates,list) or len(candidates)!=3 or any(not isinstance(v,str) or not v.strip() for v in candidates) or title_value not in candidates:
@@ -156,7 +156,7 @@ def validate_standard_plan(plan, cues, fontpath):
             raise ValueError('Board scene exceeds 12 seconds; split at a meaningful speech boundary and change template')
         if index==0:
             if scene.get('title')!=title_value:raise ValueError('First scene title must match the approved opening title')
-            opening_title_lines(opening, font(80))
+            opening_title_lines(opening, font(96))
         else:text(scene.get('title', ''),38,440,'title')
         text(scene.get('subtitle', ''), 19, 440, 'subtitle')
         presenter(scene.get('presenter', {}))
@@ -313,21 +313,22 @@ class StandardStyle:
         return Image.alpha_composite(im,layer)
 
     def art_title(self, im, value):
-        opening=self.plan['opening_title'];font=self.font(80)
+        opening=self.plan['opening_title'];font=self.font(96)
         lines=opening_title_lines(opening,font)
         shadow=Image.new('RGBA',(W,H));sd=ImageDraw.Draw(shadow)
         foreground=Image.new('RGBA',(W,H));d=ImageDraw.Draw(foreground)
         keywords=sorted(opening['highlights'],key=len,reverse=True)
         for j,line in enumerate(lines):
-            yy=62+j*88
+            bbox=font.getbbox(line,anchor='lm')
+            yy=H/2+(j-.5)*112-(bbox[1]+bbox[3])/2
             x=256-font.getlength(line)/2
             sd.text((x+3,yy+5),line,font=font,anchor='lm',fill=(0,0,0,220),stroke_width=4)
             spans=re.split('('+'|'.join(re.escape(k) for k in keywords)+')',line)
             for span in spans:
                 if not span:continue
                 color='#FFE36D' if span in keywords else '#F7FFFD'
-                d.text((x,yy),span,font=font,anchor='lm',fill=color,stroke_width=4,stroke_fill='#061421')
-                d.text((x+.7,yy),span,font=font,anchor='lm',fill=color)
+                d.text((x,yy),span,font=font,anchor='lm',fill=color,stroke_width=5,stroke_fill='#061421')
+                d.text((x+.7,yy),span,font=font,anchor='lm',fill=color,stroke_width=1,stroke_fill=color)
                 x+=font.getlength(span)
         im.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(3)))
         im.alpha_composite(foreground)
@@ -385,7 +386,7 @@ class StandardStyle:
         if template=='opening':
             # Keep the original first frame intact beneath the header/title overlays.
             veil=Image.new('RGBA',(W,H));vd=ImageDraw.Draw(veil)
-            for yy in range(224):vd.line((0,yy,W,yy),fill=(6,17,29,round(185*(1-yy/224))))
+            for yy in range(H):vd.line((0,yy,W,yy),fill=(6,17,29,round(65*max(0,1-abs(yy-H/2)/220))))
             im=Image.alpha_composite(im,veil);d=ImageDraw.Draw(im)
             self.art_title(im,title)
         else:
